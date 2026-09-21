@@ -48,7 +48,7 @@ client.on('messageCreate', async message => {
 
                 try {
                     // هنا يتم إرسال الرسالة مع منشن العضو في الخاص بالشكل الصحيح
-                    await member.send(`مرحباً <@${member.user.id}>، ${args}`);
+                    await member.send(`<@${member.user.id}>، ${args}`);
                     successCount++;
                     // تأخير بسيط لمنع الحظر من ديسكورد (Spam protection)
                     await new Promise(resolve => setTimeout(resolve, 2000));
