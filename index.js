@@ -15,10 +15,12 @@ app.listen(PORT, () => {
 
 const DATA_FILE = './coins.json';
 const STATS_FILE = './stats.json';
+const PERMS_BACKUP_FILE = './perms_backup.json';
 
 let coinsData = {};
 let statsData = {}; 
 let voiceTracker = {}; 
+let channelPermsBackup = {};
 
 if (fs.existsSync(DATA_FILE)) {
     try { coinsData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { coinsData = {}; }
@@ -28,12 +30,20 @@ if (fs.existsSync(STATS_FILE)) {
     try { statsData = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8')); } catch (e) { statsData = {}; }
 }
 
+if (fs.existsSync(PERMS_BACKUP_FILE)) {
+    try { channelPermsBackup = JSON.parse(fs.readFileSync(PERMS_BACKUP_FILE, 'utf8')); } catch (e) { channelPermsBackup = {}; }
+}
+
 function saveCoins() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(coinsData, null, 2));
 }
 
 function saveStats() {
     fs.writeFileSync(STATS_FILE, JSON.stringify(statsData, null, 2));
+}
+
+function savePermsBackup() {
+    fs.writeFileSync(PERMS_BACKUP_FILE, JSON.stringify(channelPermsBackup, null, 2));
 }
 
 function getCoins(userId) {
@@ -64,7 +74,7 @@ const client = new Client({
 });
 
 const REQUIRED_ROLE_ID = '1537274972597260379';
-const BYPASS_ROLE_ID = '1535139464702066788'; // رتبة عدم إخفاء الرومات الجديدة
+const BYPASS_ROLE_ID = '1535139464702066788'; // رتبة عدم إخفاء الرومات
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 client.once('ready', () => {
@@ -152,45 +162,63 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 6. أمر إخفاء الرومات للجميع مع استثناء الرتبة المحددة
+    // 6. أمر إخفاء الرومات (مع حفظ الصلاحيات الأصلية لكل روم)
     if (command === '!اخفاء' || command === '!اخفاء_الرومات' || command === '!hideall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
-        message.channel.send('⏳ جاري إخفاء الرومات للجميع...');
+        message.channel.send('⏳ جاري حفظ صلاحيات الرومات وإخفائها...');
         try {
             const channels = message.guild.channels.cache;
+            channelPermsBackup = {}; // إعادة تعيين النسخة الاحتياطة الحالية
+
             for (const [id, channel] of channels) {
-                // إخفاء عن Everyone
+                // حفظ الصلاحيات الحالية لكل روم قبل التعديل
+                channelPermsBackup[id] = channel.permissionOverwrites.cache.map(perm => ({
+                    id: perm.id,
+                    type: perm.type,
+                    allow: perm.allow.bitfield.toString(),
+                    deny: perm.deny.bitfield.toString()
+                }));
+
+                // إخفاء الروم عن Everyone
                 await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
                     ViewChannel: false
                 }).catch(() => {});
 
-                // استثناء رتبة الأعضاء الذين لا تختفي عندهم الرومات
+                // السماح لرتبة الاستثناء برؤية الروم
                 await channel.permissionOverwrites.edit(BYPASS_ROLE_ID, {
                     ViewChannel: true
                 }).catch(() => {});
             }
-            return message.reply('✅ تم إخفاء جميع الرومات بنجاح (مع إبقاء الرومات ظاهرة لأصحاب الرتبة المحددة) ✓');
+
+            savePermsBackup();
+            return message.reply('✅ تم إخفاء جميع الرومات مع الاحتفاظ بصلاحياتها السابقة بدقة (وإبقاء الرومات ظاهرة لأصحاب الرتبة المحددة) ✓');
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء إخفاء الرومات.');
         }
     }
 
-    // 7. أمر إظهار الرومات لجميع الأعضاء
+    // 7. أمر إظهار الرومات (استعادة الصلاحيات الأصلية لكل روم)
     if (command === '!اظهار' || command === '!اظهار_الرومات' || command === '!showall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
-        message.channel.send('⏳ جاري إظهار الرومات للجميع...');
+        if (Object.keys(channelPermsBackup).length === 0) {
+            return message.reply('❌ لا توجد نسخة احتياطية سابقة لصلاحيات الرومات! (ربما لم تستخدم أمر الإخفاء عبر البوت أو تم إعادة تشغيله)');
+        }
+
+        message.channel.send('⏳ جاري استعادة الصلاحيات الأصلية وإظهار الرومات...');
         try {
-            const channels = message.guild.channels.cache;
-            for (const [id, channel] of channels) {
-                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                    ViewChannel: null
-                }).catch(() => {});
+            for (const [channelId, overwrites] of Object.entries(channelPermsBackup)) {
+                const channel = message.guild.channels.cache.get(channelId);
+                if (channel) {
+                    // مسح التعديلات المؤقتة وإعادة تعيين الصلاحيات المحفوظة
+                    await channel.permissionOverwrites.set(overwrites).catch(() => {});
+                }
             }
-            return message.reply('✅ تم إظهار جميع الرومات لجميع الأعضاء بنجاح ✓');
+
+            return message.reply('✅ تم إظهار الرومات وإرجاع صلاحيات كل روم كما كانت تماماً قبل الإخفاء ✓');
         } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء إظهار الرومات.');
+            return message.reply('❌ حدث خطأ أثناء استعادة الصلاحيات.');
         }
     }
 
