@@ -95,7 +95,6 @@ const AUTHORIZED_ROLES = [
     '1551588105750847558'
 ];
 
-// 📌 رابط صورة الخط الخاص بك (Kusoofi) مضاف هنا مباشرة
 const TARGET_IMAGE_URL = 'https://cdn.discordapp.com/attachments/1534641628424306794/1552089376144760872/InShot_20260921_192118508.png?ex=6ab4575f&is=6ab305df&hm=9b2326ea05d81c5985e41b86c69682a59ffe7d1a443be9e9278f6d32c7939c55&';
 
 function hasPermission(member) {
@@ -157,7 +156,7 @@ client.on('messageCreate', async message => {
 
         autoImageChannels.push(message.channel.id);
         saveAutoChannels();
-        return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة تُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
+        return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
     }
 
     // 🔗 أمر إلغاء تفعيل الخط التلقائي
@@ -174,14 +173,12 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
     }
 
-    // 🖼️ إرسال صورة الخط تلقائياً لو الروم مفعل
+    // 🖼️ إرسال صورة الخط تلقائياً لأي رسالة تنكتب في الرومات المفعلة
     if (autoImageChannels.includes(message.channel.id)) {
-        if (TARGET_IMAGE_URL) {
-            try {
-                await message.channel.send({ files: [TARGET_IMAGE_URL] });
-            } catch (err) {
-                console.error('خطأ أثناء إرسال صورة الخط التلقائية:', err);
-            }
+        try {
+            await message.channel.send({ files: [TARGET_IMAGE_URL] });
+        } catch (err) {
+            console.error('خطأ أثناء إرسال صورة الخط التلقائية:', err);
         }
     }
 
@@ -191,7 +188,7 @@ client.on('messageCreate', async message => {
         saveStats();
     }
 
-    // بقية الأوامر...
+    // بقية الأوامر
     if (command === '-قبول' || command === '!قبول') {
         if (!hasPermission(message.member)) return;
         const targetMember = message.mentions.members.first();
