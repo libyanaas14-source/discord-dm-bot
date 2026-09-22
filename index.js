@@ -123,6 +123,7 @@ function hasPermission(member) {
 client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 
+    // تصفير يومي للإحصائيات اليومية الساعة 2:00 ليلاً بتوقيت ليبيا
     setInterval(() => {
         const now = new Date();
         const libyaHours = (now.getUTCHours() + 2) % 24;
@@ -134,6 +135,21 @@ client.once('ready', () => {
             console.log('🔄 تم تصفير إحصائيات التفاعل اليومية بنجاح.');
         }
     }, 60000); 
+
+    // تصفير إحصائيات الأسبوع (الرسائل، الفويس، التكتات) كل يوم سبت الساعة 12:00 ليلاً بتوقيت ليبيا
+    setInterval(() => {
+        const now = new Date();
+        const libyaDay = (now.getUTCDay() + (now.getUTCHours() + 2 >= 24 ? 1 : 0)) % 7; // يوم الأسبوع بتوقيت ليبيا (السبت = 6)
+        const libyaHours = (now.getUTCHours() + 2) % 24;
+        const libyaMinutes = now.getUTCMinutes();
+
+        // السبت هو اليوم رقم 6 (الأحد 0، الإثنين 1 ... السبت 6)
+        if (libyaDay === 6 && libyaHours === 0 && libyaMinutes === 0) {
+            weeklyStats = {};
+            saveWeeklyStats();
+            console.log('🔄 تم تصفير إحصائيات الأسبوع (الرسائل والفويس والتكتات) تلقائياً بنجاح.');
+        }
+    }, 60000);
 
     setInterval(() => {
         const now = Date.now();
@@ -230,7 +246,7 @@ client.on('messageCreate', async message => {
         const targetId = targetMember.id;
         const targetWeekly = getWeeklyData(targetId);
         
-        // تحويل الدقائق إلى ساعات (مثلاً 1.5h أو أرقام دقيقة)
+        // تحويل الدقائق إلى ساعات
         const hoursInVoice = (targetWeekly.voiceMinutes / 60).toFixed(1);
 
         return message.reply(
