@@ -75,6 +75,7 @@ const client = new Client({
 
 const REQUIRED_ROLE_ID = '1537274972597260379';
 const BYPASS_ROLE_ID = '1535139464702066788'; // رتبة عدم إخفاء الرومات
+const TARGET_ROLE_DISMISS = '1552074068944097290'; // رتبة الفصل الجديدة
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 client.once('ready', () => {
@@ -121,14 +122,38 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 2. الرصيد
+    // 2. أمر الفصل (سحب جميع الرتب وإعطاء رتبة الفصل)
+    if (command === '-فصل' || command === '!فصل') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فصله!');
+
+        try {
+            // استثناء رتبة Everyone ورتبة البوت نفسها من السحب التلقائي لكي لا تحدث مشكلة
+            const rolesToRemove = targetMember.roles.cache.filter(role => role.id !== message.guild.id && !role.managed);
+            
+            // سحب جميع الرتب القابلة للإزالة
+            await targetMember.roles.remove(rolesToRemove);
+            
+            // إعطاء رتبة الفصل الجديدة
+            await targetMember.roles.add(TARGET_ROLE_DISMISS);
+
+            return message.reply(`✅ تم فصل العضو <@${targetMember.id}>، سحب جميع رتبه، وإعطاؤه رتبة الفصل بنجاح ✓`);
+        } catch (err) {
+            console.error(err);
+            return message.reply('❌ حدث خطأ أثناء عملية الفصل (تأكد أن رتبة البوت أعلى من الرتب المراد سحبها وإعطائها).');
+        }
+    }
+
+    // 3. الرصيد
     if (command === '!coins' || command === '!رصيدي') {
         const targetUser = message.mentions.users.first() || message.author;
         const balance = getCoins(targetUser.id);
         return message.reply(`💰 رصيد العضو <@${targetUser.id}> هو: **${balance}** كوينز.`);
     }
 
-    // 3. التحويل
+    // 4. التحويل
     if (command === '!pay' || command === '!تحويل') {
         const targetUser = message.mentions.users.first();
         const amount = parseInt(args[2]);
@@ -145,7 +170,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
     }
 
-    // 4. إضافة كوينز لعضو
+    // 5. إضافة كوينز لعضو
     if (command === '!addcoins') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -156,7 +181,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تمت اضافة المبلغ \`${amount}\` الى <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 5. سحب كوينز من عضو
+    // 6. سحب كوينز من عضو
     if (command === '!withdraw' || command === '!سحب') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -167,7 +192,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 6. تصفير رصيد عضو
+    // 7. تصفير رصيد عضو
     if (command === '!reset' || command === '!تصفير') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -178,7 +203,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 7. أمر إخفاء الرومات
+    // 8. أمر إخفاء الرومات
     if (command === '!اخفاء' || command === '!اخفاء_الرومات' || command === '!hideall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -212,7 +237,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 8. أمر إظهار الرومات
+    // 9. أمر إظهار الرومات
     if (command === '!اظهار' || command === '!اظهار_الرومات' || command === '!showall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -248,7 +273,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 9. التوب الاقتصادي
+    // 10. التوب الاقتصادي
     if (command === '!top' || command === '!المتصدرين') {
         const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
         if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
@@ -262,7 +287,7 @@ client.on('messageCreate', async message => {
         return message.reply({ embeds: [{ title: '🏆 قائمة أغنى أعضاء السيرفر', description: desc, color: 0xFFD700 }] });
     }
 
-    // 10. توب التفاعل اليومي
+    // 11. توب التفاعل اليومي
     if (command === '!topday' || command === '!day') {
         if (!message.member.roles.cache.has(REQUIRED_ROLE_ID)) return;
 
@@ -290,7 +315,7 @@ client.on('messageCreate', async message => {
         });
     }
 
-    // 11. الإذاعة السريعة
+    // 12. الإذاعة السريعة
     if (command === '!all') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const broadcastMsg = args.slice(1).join(' ');
