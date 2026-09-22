@@ -70,12 +70,14 @@ client.on('messageCreate', async message => {
     const args = message.content.split(' ');
     const command = args[0].toLowerCase();
 
+    // 1. أمر الرصيد: !coins
     if (command === '!coins' || command === '!رصيدي') {
         const targetUser = message.mentions.users.first() || message.author;
         const balance = getCoins(targetUser.id);
         return message.reply(`💰 رصيد العضو <@${targetUser.id}> هو: **${balance}** كوينز.`);
     }
 
+    // 2. أمر التحويل: !pay @user [المبلغ]
     if (command === '!pay' || command === '!تحويل') {
         const targetUser = message.mentions.users.first();
         const amount = parseInt(args[2]);
@@ -95,6 +97,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى العضو <@${targetUser.id}>!`);
     }
 
+    // 3. أمر الإضافة الخاص بك: !addcoins @user [المبلغ]
     if (command === '!addcoins') {
         if (message.author.id !== '1489281825942667355') {
             return message.reply('❌ هذا الأمر مخصص للمالك فقط!');
@@ -112,6 +115,27 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تمت إضافة **${amount}** كوينز إلى العضو <@${targetUser.id}>. رصيده الحالي: **${newBalance}**`);
     }
 
+    // 4. أمر السحب الجديد: !withdraw أو !سحب @user [المبلغ]
+    if (command === '!withdraw' || command === '!سحب') {
+        if (message.author.id !== '1489281825942667355') {
+            return message.reply('❌ هذا الأمر مخصص للمالك فقط!');
+        }
+
+        const targetUser = message.mentions.users.first();
+        const amount = parseInt(args[2]);
+
+        if (!targetUser || !amount || amount <= 0) {
+            return message.reply('❌ الاستخدام الصحيح: `!سحب @user [المبلغ]`');
+        }
+
+        const currentBalance = getCoins(targetUser.id);
+        removeCoins(targetUser.id, amount);
+        const newBalance = getCoins(targetUser.id);
+
+        return message.reply(`✅ تم سحب **${amount}** كوينز من العضو <@${targetUser.id}>. رصيده الحالي: **${newBalance}**`);
+    }
+
+    // أمر الإذاعة: !all
     if (command === '!all' && message.member.permissions.has(PermissionFlagsBits.Administrator)) {
         const broadcastMsg = args.slice(1).join(' ');
         if (!broadcastMsg) return message.reply('يرجى كتابة الرسالة المراد إرسالها بعد الأمر!');
@@ -144,4 +168,3 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.TOKEN);
- 
