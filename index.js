@@ -17,12 +17,14 @@ const DATA_FILE = './coins.json';
 const STATS_FILE = './stats.json';
 const PERMS_BACKUP_FILE = './perms_backup.json';
 const AUTO_CHANNELS_FILE = './auto_channels.json';
+const WEEKLY_STATS_FILE = './weekly_stats.json';
 
 let coinsData = {};
 let statsData = {}; 
 let voiceTracker = {}; 
 let channelPermsBackup = {};
 let autoImageChannels = [];
+let weeklyStats = {}; // { userId: { messages: 0, voiceMinutes: 0, claims: 0 } }
 
 if (fs.existsSync(DATA_FILE)) {
     try { coinsData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { coinsData = {}; }
@@ -38,6 +40,10 @@ if (fs.existsSync(PERMS_BACKUP_FILE)) {
 
 if (fs.existsSync(AUTO_CHANNELS_FILE)) {
     try { autoImageChannels = JSON.parse(fs.readFileSync(AUTO_CHANNELS_FILE, 'utf8')); } catch (e) { autoImageChannels = []; }
+}
+
+if (fs.existsSync(WEEKLY_STATS_FILE)) {
+    try { weeklyStats = JSON.parse(fs.readFileSync(WEEKLY_STATS_FILE, 'utf8')); } catch (e) { weeklyStats = {}; }
 }
 
 function saveCoins() {
@@ -56,6 +62,10 @@ function saveAutoChannels() {
     fs.writeFileSync(AUTO_CHANNELS_FILE, JSON.stringify(autoImageChannels, null, 2));
 }
 
+function saveWeeklyStats() {
+    fs.writeFileSync(WEEKLY_STATS_FILE, JSON.stringify(weeklyStats, null, 2));
+}
+
 function getCoins(userId) {
     if (!coinsData[userId]) coinsData[userId] = { coins: 0 };
     return coinsData[userId].coins;
@@ -71,6 +81,13 @@ function removeCoins(userId, amount) {
     if (!coinsData[userId]) coinsData[userId] = { coins: 0 };
     coinsData[userId].coins = Math.max(0, coinsData[userId].coins - amount);
     saveCoins();
+}
+
+function getWeeklyData(userId) {
+    if (!weeklyStats[userId]) {
+        weeklyStats[userId] = { messages: 0, voiceMinutes: 0, claims: 0 };
+    }
+    return weeklyStats[userId];
 }
 
 const client = new Client({
@@ -129,8 +146,14 @@ client.once('ready', () => {
                     if (diffMinutes >= 1) {
                         if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
                         statsData[userId].voiceMinutes += diffMinutes;
+                        
+                        // تتبع إحصائيات الأسبوع للفويس
+                        const wData = getWeeklyData(userId);
+                        wData.voiceMinutes += diffMinutes;
+
                         voiceTracker[userId] = now;
                         saveStats();
+                        saveWeeklyStats();
                     }
                 } else {
                     delete voiceTracker[userId];
@@ -145,8 +168,19 @@ client.on('messageCreate', async message => {
 
     const args = message.content.split(' ');
     const command = args[0].toLowerCase();
+    const userId = message.author.id;
 
-    // 🔗 أمر تفعيل الخط التلقائي (مقصور عليك أنت والشخص الثاني فقط)
+    // تتبع الرسائل في الأسبوع ومعرفة كلمة "استلام" بسريّة خلف الكواليس
+    const wData = getWeeklyData(userId);
+    wData.messages += 1;
+
+    // فحص إذا رسالته تحتوي على كلمة "استلام" (بدون ما يدرون الأعضاء)
+    if (message.content.includes('استلام')) {
+        wData.claims += 1;
+    }
+    saveWeeklyStats();
+
+    // 🔗 أمر تفعيل الخط التلقائي
     if ((command === '.تفعيل' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-تفعيل') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -159,7 +193,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
     }
 
-    // 🔗 أمر إلغاء تفعيل الخط التلقائي (مقصور عليك أنت والشخص الثاني فقط)
+    // 🔗 أمر إلغاء تفعيل الخط التلقائي
     if ((command === '.إلغاء' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-إلغاء') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -183,9 +217,28 @@ client.on('messageCreate', async message => {
     }
 
     if (message.member && message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
-        if (!statsData[message.author.id]) statsData[message.author.id] = { messages: 0, voiceMinutes: 0 };
-        statsData[message.author.id].messages += 1;
+        if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
+        statsData[userId].messages += 1;
         saveStats();
+    }
+
+    // 🔍 أمر فحص العضو (-id @الشخص)
+    if (command === '-id') {
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فحصه! مثال: `-id @الشخص`');
+        
+        const targetId = targetMember.id;
+        const targetWeekly = getWeeklyData(targetId);
+        
+        // تحويل الدقائق إلى ساعات (مثلاً 1.5h أو أرقام دقيقة)
+        const hoursInVoice = (targetWeekly.voiceMinutes / 60).toFixed(1);
+
+        return message.reply(
+            `**فحص العضو <@${targetId}>**\n\n` +
+            `عدد الرسائل: \`${targetWeekly.messages}\`\n\n` +
+            `الوقت داخل الفويس: \`${hoursInVoice}h\`\n\n` +
+            `عدد التكتات الذي استلمها: \`${targetWeekly.claims}\``
+        );
     }
 
     // بقية الأوامر
@@ -391,7 +444,13 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             if (duration > 0) {
                 if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
                 statsData[userId].voiceMinutes += duration;
+
+                // تتبع الفويس للأسبوع
+                const wData = getWeeklyData(userId);
+                wData.voiceMinutes += duration;
+
                 saveStats();
+                saveWeeklyStats();
             }
             delete voiceTracker[userId];
         }
