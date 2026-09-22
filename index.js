@@ -16,11 +16,13 @@ app.listen(PORT, () => {
 const DATA_FILE = './coins.json';
 const STATS_FILE = './stats.json';
 const PERMS_BACKUP_FILE = './perms_backup.json';
+const AUTO_CHANNELS_FILE = './auto_channels.json';
 
 let coinsData = {};
 let statsData = {}; 
 let voiceTracker = {}; 
 let channelPermsBackup = {};
+let autoImageChannels = [];
 
 if (fs.existsSync(DATA_FILE)) {
     try { coinsData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { coinsData = {}; }
@@ -34,6 +36,10 @@ if (fs.existsSync(PERMS_BACKUP_FILE)) {
     try { channelPermsBackup = JSON.parse(fs.readFileSync(PERMS_BACKUP_FILE, 'utf8')); } catch (e) { channelPermsBackup = {}; }
 }
 
+if (fs.existsSync(AUTO_CHANNELS_FILE)) {
+    try { autoImageChannels = JSON.parse(fs.readFileSync(AUTO_CHANNELS_FILE, 'utf8')); } catch (e) { autoImageChannels = []; }
+}
+
 function saveCoins() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(coinsData, null, 2));
 }
@@ -44,6 +50,10 @@ function saveStats() {
 
 function savePermsBackup() {
     fs.writeFileSync(PERMS_BACKUP_FILE, JSON.stringify(channelPermsBackup, null, 2));
+}
+
+function saveAutoChannels() {
+    fs.writeFileSync(AUTO_CHANNELS_FILE, JSON.stringify(autoImageChannels, null, 2));
 }
 
 function getCoins(userId) {
@@ -74,17 +84,19 @@ const client = new Client({
 });
 
 const REQUIRED_ROLE_ID = '1537274972597260379';
-const BYPASS_ROLE_ID = '1535139464702066788'; // رتبة عدم إخفاء الرومات
-const TARGET_ROLE_DISMISS = '1552074068944097290'; // رتبة الفصل الجديدة
+const BYPASS_ROLE_ID = '1535139464702066788'; 
+const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
-// الرتب المصرح لها استخدام أمري (-قبول و -فصل)
 const AUTHORIZED_ROLES = [
     '1535139464702066788',
     '1551588405836648571',
     '1551588472412966942',
     '1551588105750847558'
 ];
+
+// 📌 رابط صورة الخط الخاص بك (Kusoofi) مضاف هنا مباشرة
+const TARGET_IMAGE_URL = 'https://cdn.discordapp.com/attachments/1534641628424306794/1552089376144760872/InShot_20260921_192118508.png?ex=6ab4575f&is=6ab305df&hm=9b2326ea05d81c5985e41b86c69682a59ffe7d1a443be9e9278f6d32c7939c55&';
 
 function hasPermission(member) {
     if (!member) return false;
@@ -95,7 +107,6 @@ function hasPermission(member) {
 client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 
-    // تصفير إحصائيات التفاعل اليومية الساعة 2 ليلاً بتوقيت ليبيا
     setInterval(() => {
         const now = new Date();
         const libyaHours = (now.getUTCHours() + 2) % 24;
@@ -108,32 +119,71 @@ client.once('ready', () => {
         }
     }, 60000); 
 
-    // نظام لحساب دقائق الفويس "لحظة بلحظة" (كل دقيقة يتم إضافة الدقائق تلقائياً للمتكتدين في الرومات الصوتية)
     setInterval(() => {
         const now = Date.now();
         for (const [userId, startTime] of Object.entries(voiceTracker)) {
-            const guild = client.guilds.cache.first(); // أو تحديد السيرفر مباشرة
+            const guild = client.guilds.cache.first();
             if (guild) {
                 const member = guild.members.cache.get(userId);
-                // التأكد أن العضو ما زال موجود بالفويس ولديه الرتبة المطلوبة
                 if (member && member.voice.channel && member.roles.cache.has(REQUIRED_ROLE_ID)) {
                     const diffMinutes = Math.floor((now - startTime) / 60000);
                     if (diffMinutes >= 1) {
                         if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
                         statsData[userId].voiceMinutes += diffMinutes;
-                        voiceTracker[userId] = now; // تحديث وقت البداية للدقيقة القادمة
+                        voiceTracker[userId] = now;
                         saveStats();
                     }
                 } else {
-                    delete voiceTracker[userId]; // إذا خرج من الفويس أو سحبت منه الرتبة
+                    delete voiceTracker[userId];
                 }
             }
         }
-    }, 60000); // يتم التحقق والحفظ كل دقيقة
+    }, 60000);
 });
 
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
+
+    const args = message.content.split(' ');
+    const command = args[0].toLowerCase();
+
+    // 🔗 أمر تفعيل الخط التلقائي
+    if ((command === '.تفعيل' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-تفعيل') {
+        if (!hasPermission(message.member)) return;
+
+        if (autoImageChannels.includes(message.channel.id)) {
+            return message.reply('⚠️ الخط التلقائي مفعل مسبقاً في هذا الروم!');
+        }
+
+        autoImageChannels.push(message.channel.id);
+        saveAutoChannels();
+        return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة تُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
+    }
+
+    // 🔗 أمر إلغاء تفعيل الخط التلقائي
+    if ((command === '.إلغاء' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-إلغاء') {
+        if (!hasPermission(message.member)) return;
+
+        const index = autoImageChannels.indexOf(message.channel.id);
+        if (index === -1) {
+            return message.reply('⚠️ الخط التلقائي غير مفعل أصلاً في هذا الروم!');
+        }
+
+        autoImageChannels.splice(index, 1);
+        saveAutoChannels();
+        return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
+    }
+
+    // 🖼️ إرسال صورة الخط تلقائياً لو الروم مفعل
+    if (autoImageChannels.includes(message.channel.id)) {
+        if (TARGET_IMAGE_URL) {
+            try {
+                await message.channel.send({ files: [TARGET_IMAGE_URL] });
+            } catch (err) {
+                console.error('خطأ أثناء إرسال صورة الخط التلقائية:', err);
+            }
+        }
+    }
 
     if (message.member && message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
         if (!statsData[message.author.id]) statsData[message.author.id] = { messages: 0, voiceMinutes: 0 };
@@ -141,111 +191,85 @@ client.on('messageCreate', async message => {
         saveStats();
     }
 
-    const args = message.content.split(' ');
-    const command = args[0].toLowerCase();
-
-    // 1. أمر القبول (إعطاء الرتبة المحددة)
+    // بقية الأوامر...
     if (command === '-قبول' || command === '!قبول') {
         if (!hasPermission(message.member)) return;
-        
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد قبوله!');
-
         try {
             await targetMember.roles.add(REQUIRED_ROLE_ID);
             return message.reply(`✅ تم قبول العضو <@${targetMember.id}> وإعطاؤه الرتبة بنجاح ✓`);
         } catch (err) {
-            console.error(err);
-            return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة (تأكد أن رتبة البوت أعلى من الرتبة المراد إعطاؤها).');
+            return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة.');
         }
     }
 
-    // 2. أمر الفصل (سحب جميع الرتب وإعطاء رتبة الفصل)
     if (command === '-فصل' || command === '!فصل') {
         if (!hasPermission(message.member)) return;
-
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فصله!');
-
         try {
             const rolesToRemove = targetMember.roles.cache.filter(role => role.id !== message.guild.id && !role.managed);
-            
             await targetMember.roles.remove(rolesToRemove);
             await targetMember.roles.add(TARGET_ROLE_DISMISS);
-
-            return message.reply(`✅ تم فصل العضو <@${targetMember.id}>، سحب جميع رتبه، وإعطاؤه رتبة الفصل بنجاح ✓`);
+            return message.reply(`✅ تم فصل العضو <@${targetMember.id}> وإعطاؤه رتبة الفصل بنجاح ✓`);
         } catch (err) {
-            console.error(err);
-            return message.reply('❌ حدث خطأ أثناء عملية الفصل (تأكد أن رتبة البوت أعلى من الرتب المراد سحبها وإعطائها).');
+            return message.reply('❌ حدث خطأ أثناء عملية الفصل.');
         }
     }
 
-    // 3. الرصيد
     if (command === '!coins' || command === '!رصيدي') {
         const targetUser = message.mentions.users.first() || message.author;
         const balance = getCoins(targetUser.id);
         return message.reply(`💰 رصيد العضو <@${targetUser.id}> هو: **${balance}** كوينز.`);
     }
 
-    // 4. التحويل
     if (command === '!pay' || command === '!تحويل') {
         const targetUser = message.mentions.users.first();
         const amount = parseInt(args[2]);
-
         if (!targetUser) return message.reply('❌ يرجى منشن الشخص المراد التحويل له!');
         if (targetUser.id === message.author.id) return message.reply('❌ لا يمكنك التحويل لنفسك!');
         if (!amount || amount <= 0) return message.reply('❌ يرجى تحديد مبلغ صحيح!');
-
         const senderBalance = getCoins(message.author.id);
         if (senderBalance < amount) return message.reply(`❌ رصيدك غير كافي! (${senderBalance} كوينز).`);
-
         removeCoins(message.author.id, amount);
         addCoins(targetUser.id, amount);
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
     }
 
-    // 5. إضافة كوينز لعضو
     if (command === '!addcoins') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
         const amount = parseInt(args[2]);
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!addcoins @user [المبلغ]`');
-
         addCoins(targetUser.id, amount);
         return message.reply(`تمت اضافة المبلغ \`${amount}\` الى <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 6. سحب كوينز من عضو
     if (command === '!withdraw' || command === '!سحب') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
         const amount = parseInt(args[2]);
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!سحب @user [المبلغ]`');
-
         removeCoins(targetUser.id, amount);
         return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 7. تصفير رصيد عضو
     if (command === '!reset' || command === '!تصفير') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
         if (!targetUser) return message.reply('❌ يرجى منشن العضو!');
-
         coinsData[targetUser.id] = { coins: 0 };
         saveCoins();
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 8. أمر إخفاء الرومات
     if (command === '!اخفاء' || command === '!اخفاء_الرومات' || command === '!hideall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
-
         message.channel.send('⏳ جاري حفظ صلاحيات الرومات وإخفائها...');
         try {
             const channels = message.guild.channels.cache;
             channelPermsBackup = {};
-
             for (const [id, channel] of channels) {
                 channelPermsBackup[id] = channel.permissionOverwrites.cache.map(perm => ({
                     id: perm.id,
@@ -253,28 +277,18 @@ client.on('messageCreate', async message => {
                     allow: perm.allow.bitfield.toString(),
                     deny: perm.deny.bitfield.toString()
                 }));
-
-                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                    ViewChannel: false
-                }).catch(() => {});
-
-                await channel.permissionOverwrites.edit(BYPASS_ROLE_ID, {
-                    ViewChannel: true
-                }).catch(() => {});
+                await channel.permissionOverwrites.edit(message.guild.roles.everyone, { ViewChannel: false }).catch(() => {});
+                await channel.permissionOverwrites.edit(BYPASS_ROLE_ID, { ViewChannel: true }).catch(() => {});
             }
-
             savePermsBackup();
-            return message.reply('✅ تم حفظ الصلاحيات وإخفاء جميع الرومات بنجاح (مع إبقاء الرومات ظاهرة لأصحاب الرتبة المحددة) ✓');
+            return message.reply('✅ تم حفظ الصلاحيات وإخفاء جميع الرومات بنجاح ✓');
         } catch (err) {
-            console.error(err);
             return message.reply('❌ حدث خطأ أثناء إخفاء الرومات.');
         }
     }
 
-    // 9. أمر إظهار الرومات
     if (command === '!اظهار' || command === '!اظهار_الرومات' || command === '!showall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
-
         message.channel.send('⏳ جاري استعادة الصلاحيات وإظهار الرومات...');
         try {
             if (Object.keys(channelPermsBackup).length > 0) {
@@ -293,43 +307,33 @@ client.on('messageCreate', async message => {
             } else {
                 const channels = message.guild.channels.cache;
                 for (const [id, channel] of channels) {
-                    await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                        ViewChannel: null
-                    }).catch(() => {});
+                    await channel.permissionOverwrites.edit(message.guild.roles.everyone, { ViewChannel: null }).catch(() => {});
                     await channel.permissionOverwrites.delete(BYPASS_ROLE_ID).catch(() => {});
                 }
             }
-
-            return message.reply('✅ تم إظهار الرومات وإرجاع صلاحيات كل روم كما كانت تماماً قبل الإخفاء ✓');
+            return message.reply('✅ تم إظهار الرومات وإرجاع صلاحيات كل روم كما كانت تماماً ✓');
         } catch (err) {
-            console.error(err);
             return message.reply('❌ حدث خطأ أثناء استعادة الصلاحيات.');
         }
     }
 
-    // 10. التوب الاقتصادي
     if (command === '!top' || command === '!المتصدرين') {
         const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
         if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
-
         let desc = '';
         sortedUsers.forEach(([userId, data], index) => {
             let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🔹';
             desc += `${medal} **#${index + 1}** | <@${userId}> — **${data.coins}** كوينز\n`;
         });
-
         return message.reply({ embeds: [{ title: '🏆 قائمة أغنى أعضاء السيرفر', description: desc, color: 0xFFD700 }] });
     }
 
-    // 11. توب التفاعل اليومي
     if (command === '!topday' || command === '!day') {
         if (!message.member.roles.cache.has(REQUIRED_ROLE_ID)) return;
-
         const filterRole = ([userId]) => {
             const member = message.guild.members.cache.get(userId);
             return member && member.roles.cache.has(REQUIRED_ROLE_ID);
         };
-
         const topMessages = Object.entries(statsData).filter(filterRole).sort((a, b) => b[1].messages - a[1].messages).slice(0, 5);
         const topVoice = Object.entries(statsData).filter(filterRole).sort((a, b) => b[1].voiceMinutes - a[1].voiceMinutes).slice(0, 5);
 
@@ -349,12 +353,10 @@ client.on('messageCreate', async message => {
         });
     }
 
-    // 12. الإذاعة السريعة
     if (command === '!all') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const broadcastMsg = args.slice(1).join(' ');
         if (!broadcastMsg) return message.reply('يرجى كتابة الرسالة!');
-
         message.channel.send('⏳ جاري الإرسال بسرعة...');
         try {
             await message.guild.members.fetch();
@@ -375,19 +377,17 @@ client.on('messageCreate', async message => {
     }
 });
 
-// تتبع الفويس المحدث (يحسب لحظة بلحظة ويحفظ الدقائق دورياً)
+// تتبع الفويس
 client.on('voiceStateUpdate', (oldState, newState) => {
     const member = newState.member || oldState.member;
     if (!member || member.user.bot) return;
     const userId = member.id;
 
-    // دخوله للفويس أو انتقاله من روم لآخر
     if (!oldState.channelId && newState.channelId) {
         if (member.roles.cache.has(REQUIRED_ROLE_ID)) {
             voiceTracker[userId] = Date.now();
         }
     } 
-    // خروجه التام من الفويس
     else if (oldState.channelId && !newState.channelId) {
         if (voiceTracker[userId]) {
             const duration = Math.floor((Date.now() - voiceTracker[userId]) / 60000);
