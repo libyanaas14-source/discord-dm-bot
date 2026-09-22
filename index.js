@@ -115,7 +115,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تمت إضافة **${amount}** كوينز إلى العضو <@${targetUser.id}>. رصيده الحالي: **${newBalance}**`);
     }
 
-    // 4. أمر السحب الجديد: !withdraw أو !سحب @user [المبلغ]
+    // 4. أمر السحب: !withdraw أو !سحب @user [المبلغ]
     if (command === '!withdraw' || command === '!سحب') {
         if (message.author.id !== '1489281825942667355') {
             return message.reply('❌ هذا الأمر مخصص للمالك فقط!');
@@ -128,11 +128,57 @@ client.on('messageCreate', async message => {
             return message.reply('❌ الاستخدام الصحيح: `!سحب @user [المبلغ]`');
         }
 
-        const currentBalance = getCoins(targetUser.id);
         removeCoins(targetUser.id, amount);
         const newBalance = getCoins(targetUser.id);
 
         return message.reply(`✅ تم سحب **${amount}** كوينز من العضو <@${targetUser.id}>. رصيده الحالي: **${newBalance}**`);
+    }
+
+    // 5. أمر تصفير الرصيد الجديد: !reset أو !تصفير @user
+    if (command === '!reset' || command === '!تصفير') {
+        if (message.author.id !== '1489281825942667355') {
+            return message.reply('❌ هذا الأمر مخصص للمالك فقط!');
+        }
+
+        const targetUser = message.mentions.users.first();
+        if (!targetUser) {
+            return message.reply('❌ يرجى منشن العضو المراد تصفير رصيده! مثال: `!reset @user`');
+        }
+
+        coinsData[targetUser.id] = { coins: 0 };
+        saveCoins();
+
+        return message.reply(`🔄 تم تصفير رصيد العضو <@${targetUser.id}> وأصبح رصيده **0** كوينز.`);
+    }
+
+    // 6. أمر لوحة المتصدرين: !top أو !المتصدرين
+    if (command === '!top' || command === '!المتصدرين' || command === '!أغنى') {
+        const sortedUsers = Object.entries(coinsData)
+            .sort((a, b) => b[1].coins - a[1].coins)
+            .slice(0, 10);
+
+        if (sortedUsers.length === 0) {
+            return message.reply('📊 لا يوجد أي بيانات للكوينز حالياً في السيرفر.');
+        }
+
+        let desc = '';
+        sortedUsers.forEach(([userId, data], index) => {
+            let medal = '🔹';
+            if (index === 0) medal = '🥇';
+            else if (index === 1) medal = '🥈';
+            else if (index === 2) medal = '🥉';
+
+            desc += `${medal} **#${index + 1}** | <@${userId}> — **${data.coins}** كوينز\n`;
+        });
+
+        return message.reply({
+            embeds: [{
+                title: '🏆 قائمة أغنى أعضاء السيرفر (Top Rich)',
+                description: desc,
+                color: 0xFFD700,
+                timestamp: new Date()
+            }]
+        });
     }
 
     // أمر الإذاعة: !all
