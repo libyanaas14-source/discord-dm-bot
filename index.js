@@ -146,9 +146,9 @@ client.on('messageCreate', async message => {
     const args = message.content.split(' ');
     const command = args[0].toLowerCase();
 
-    // 🔗 أمر تفعيل الخط التلقائي
+    // 🔗 أمر تفعيل الخط التلقائي (مقصور عليك أنت والشخص الثاني فقط)
     if ((command === '.تفعيل' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-تفعيل') {
-        if (!hasPermission(message.member)) return;
+        if (!ADMIN_IDS.includes(message.author.id)) return;
 
         if (autoImageChannels.includes(message.channel.id)) {
             return message.reply('⚠️ الخط التلقائي مفعل مسبقاً في هذا الروم!');
@@ -159,9 +159,9 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
     }
 
-    // 🔗 أمر إلغاء تفعيل الخط التلقائي
+    // 🔗 أمر إلغاء تفعيل الخط التلقائي (مقصور عليك أنت والشخص الثاني فقط)
     if ((command === '.إلغاء' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-إلغاء') {
-        if (!hasPermission(message.member)) return;
+        if (!ADMIN_IDS.includes(message.author.id)) return;
 
         const index = autoImageChannels.indexOf(message.channel.id);
         if (index === -1) {
