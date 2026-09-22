@@ -118,7 +118,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
     }
 
-    // 3. إضافة كوينز (للأيديات فقط)
+    // 3. إضافة كوينز (للأيديات فقط) مع الرسالة المخصصة
     if (command === '!addcoins') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -126,7 +126,7 @@ client.on('messageCreate', async message => {
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!addcoins @user [المبلغ]`');
 
         addCoins(targetUser.id, amount);
-        return message.reply(`✅ تمت إضافة **${amount}** كوينز إلى <@${targetUser.id}>.`);
+        return message.reply(`تمت إضافة \`${amount}\` الي العضو <@${targetUser.id}> بنجاح`);
     }
 
     // 4. السحب (للأيديات فقط)
@@ -137,7 +137,7 @@ client.on('messageCreate', async message => {
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!سحب @user [المبلغ]`');
 
         removeCoins(targetUser.id, amount);
-        return message.reply(`✅ تم سحب **${amount}** كوينز من <@${targetUser.id}>.`);
+        return message.reply(`✅ تم سحب **${amount}** كوينز من العضو <@${targetUser.id}>.`);
     }
 
     // 5. التصفير (للأيديات فقط)
@@ -148,7 +148,7 @@ client.on('messageCreate', async message => {
 
         coinsData[targetUser.id] = { coins: 0 };
         saveCoins();
-        return message.reply(`🔄 تم تصفير رصيد <@${targetUser.id}> بنجاح.`);
+        return message.reply(`🔄 تم تصفير رصيد العضو <@${targetUser.id}> بنجاح.`);
     }
 
     // 6. التوب الاقتصادي
@@ -219,19 +219,17 @@ client.on('messageCreate', async message => {
     }
 });
 
-// تتبع الفويس المحسّن (يتحقق من الرتبة وقت الدخول ووقت الخروج لضمان عدم ضياع الدقائق)
+// تتبع الفويس
 client.on('voiceStateUpdate', (oldState, newState) => {
     const member = newState.member || oldState.member;
     if (!member || member.user.bot) return;
     const userId = member.id;
 
-    // إذا دخل الفويس أو انتقل من قناة لأخرى وهو يحمل الرتبة
     if (!oldState.channelId && newState.channelId) {
         if (member.roles.cache.has(REQUIRED_ROLE_ID)) {
             voiceTracker[userId] = Date.now();
         }
     } 
-    // إذا طلع من الفويس تماماً
     else if (oldState.channelId && !newState.channelId) {
         if (voiceTracker[userId]) {
             const duration = Math.floor((Date.now() - voiceTracker[userId]) / 60000);
