@@ -78,6 +78,21 @@ const BYPASS_ROLE_ID = '1535139464702066788'; // رتبة عدم إخفاء ال
 const TARGET_ROLE_DISMISS = '1552074068944097290'; // رتبة الفصل الجديدة
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
+// الرتب المصرح لها استخدام أمري (-قبول و -فصل)
+const AUTHORIZED_ROLES = [
+    '1535139464702066788',
+    '1551588405836648571',
+    '1551588472412966942',
+    '1551588105750847558'
+];
+
+// دالة للتحقق مما إذا كان المستخدم يمتلك صلاحية استخدام الأوامر الإدارية
+function hasPermission(member) {
+    if (!member) return false;
+    if (ADMIN_IDS.includes(member.id)) return true;
+    return member.roles.cache.some(role => AUTHORIZED_ROLES.includes(role.id));
+}
+
 client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 
@@ -108,7 +123,7 @@ client.on('messageCreate', async message => {
 
     // 1. أمر القبول (إعطاء الرتبة المحددة)
     if (command === '-قبول' || command === '!قبول') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
+        if (!hasPermission(message.member)) return;
         
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد قبوله!');
@@ -124,19 +139,15 @@ client.on('messageCreate', async message => {
 
     // 2. أمر الفصل (سحب جميع الرتب وإعطاء رتبة الفصل)
     if (command === '-فصل' || command === '!فصل') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
+        if (!hasPermission(message.member)) return;
 
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فصله!');
 
         try {
-            // استثناء رتبة Everyone ورتبة البوت نفسها من السحب التلقائي لكي لا تحدث مشكلة
             const rolesToRemove = targetMember.roles.cache.filter(role => role.id !== message.guild.id && !role.managed);
             
-            // سحب جميع الرتب القابلة للإزالة
             await targetMember.roles.remove(rolesToRemove);
-            
-            // إعطاء رتبة الفصل الجديدة
             await targetMember.roles.add(TARGET_ROLE_DISMISS);
 
             return message.reply(`✅ تم فصل العضو <@${targetMember.id}>، سحب جميع رتبه، وإعطاؤه رتبة الفصل بنجاح ✓`);
