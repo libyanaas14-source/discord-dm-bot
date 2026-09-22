@@ -219,20 +219,19 @@ client.on('messageCreate', async message => {
     }
 });
 
-// تتبع الفويس المحدث والمضبوط بدقة
+// تتبع الفويس المحسّن (يتحقق من الرتبة وقت الدخول ووقت الخروج لضمان عدم ضياع الدقائق)
 client.on('voiceStateUpdate', (oldState, newState) => {
     const member = newState.member || oldState.member;
     if (!member || member.user.bot) return;
     const userId = member.id;
 
-    // التحقق أن العضو يمتلك الرتبة المطلوبة لاحتساب الفويس
-    if (!member.roles.cache.has(REQUIRED_ROLE_ID)) return;
-
-    // دخول الفويس أو التبديل لقناة جديدة
+    // إذا دخل الفويس أو انتقل من قناة لأخرى وهو يحمل الرتبة
     if (!oldState.channelId && newState.channelId) {
-        voiceTracker[userId] = Date.now();
+        if (member.roles.cache.has(REQUIRED_ROLE_ID)) {
+            voiceTracker[userId] = Date.now();
+        }
     } 
-    // الخروج التام من الفويس
+    // إذا طلع من الفويس تماماً
     else if (oldState.channelId && !newState.channelId) {
         if (voiceTracker[userId]) {
             const duration = Math.floor((Date.now() - voiceTracker[userId]) / 60000);
