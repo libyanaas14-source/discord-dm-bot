@@ -105,14 +105,30 @@ client.on('messageCreate', async message => {
     const args = message.content.split(' ');
     const command = args[0].toLowerCase();
 
-    // 1. الرصيد
+    // 1. أمر القبول (إعطاء الرتبة المحددة)
+    if (command === '-قبول' || command === '!قبول') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+        
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد قبوله!');
+
+        try {
+            await targetMember.roles.add(REQUIRED_ROLE_ID);
+            return message.reply(`✅ تم قبول العضو <@${targetMember.id}> وإعطاؤه الرتبة بنجاح ✓`);
+        } catch (err) {
+            console.error(err);
+            return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة (تأكد أن رتبة البوت أعلى من الرتبة المراد إعطاؤها).');
+        }
+    }
+
+    // 2. الرصيد
     if (command === '!coins' || command === '!رصيدي') {
         const targetUser = message.mentions.users.first() || message.author;
         const balance = getCoins(targetUser.id);
         return message.reply(`💰 رصيد العضو <@${targetUser.id}> هو: **${balance}** كوينز.`);
     }
 
-    // 2. التحويل
+    // 3. التحويل
     if (command === '!pay' || command === '!تحويل') {
         const targetUser = message.mentions.users.first();
         const amount = parseInt(args[2]);
@@ -129,7 +145,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
     }
 
-    // 3. إضافة كوينز لعضو
+    // 4. إضافة كوينز لعضو
     if (command === '!addcoins') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -140,7 +156,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تمت اضافة المبلغ \`${amount}\` الى <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 4. سحب كوينز من عضو
+    // 5. سحب كوينز من عضو
     if (command === '!withdraw' || command === '!سحب') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -151,7 +167,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 5. تصفير رصيد عضو
+    // 6. تصفير رصيد عضو
     if (command === '!reset' || command === '!تصفير') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -162,7 +178,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 6. أمر إخفاء الرومات (مع حفظ الصلاحيات القديمة لكل قناة)
+    // 7. أمر إخفاء الرومات
     if (command === '!اخفاء' || command === '!اخفاء_الرومات' || command === '!hideall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -172,7 +188,6 @@ client.on('messageCreate', async message => {
             channelPermsBackup = {};
 
             for (const [id, channel] of channels) {
-                // حفظ الصلاحيات الحالية للقناة كأوبجكت مرتب
                 channelPermsBackup[id] = channel.permissionOverwrites.cache.map(perm => ({
                     id: perm.id,
                     type: perm.type,
@@ -180,12 +195,10 @@ client.on('messageCreate', async message => {
                     deny: perm.deny.bitfield.toString()
                 }));
 
-                // إخفاء الروم عن Everyone
                 await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
                     ViewChannel: false
                 }).catch(() => {});
 
-                // إعطاء الصلاحية لرتبة الاستثناء
                 await channel.permissionOverwrites.edit(BYPASS_ROLE_ID, {
                     ViewChannel: true
                 }).catch(() => {});
@@ -199,13 +212,12 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 7. أمر إظهار الرومات (استعادة الصلاحيات الأصلية بدقة)
+    // 8. أمر إظهار الرومات
     if (command === '!اظهار' || command === '!اظهار_الرومات' || command === '!showall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         message.channel.send('⏳ جاري استعادة الصلاحيات وإظهار الرومات...');
         try {
-            // إذا كانت النسخة الاحتياخية موجودة، نستعيدها بدقة
             if (Object.keys(channelPermsBackup).length > 0) {
                 for (const [channelId, overwrites] of Object.entries(channelPermsBackup)) {
                     const channel = message.guild.channels.cache.get(channelId);
@@ -220,7 +232,6 @@ client.on('messageCreate', async message => {
                     }
                 }
             } else {
-                // حل احتياطي في حال لم تكن النسخة الاحتياخية موجودة
                 const channels = message.guild.channels.cache;
                 for (const [id, channel] of channels) {
                     await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
@@ -237,7 +248,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 8. التوب الاقتصادي
+    // 9. التوب الاقتصادي
     if (command === '!top' || command === '!المتصدرين') {
         const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
         if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
@@ -251,7 +262,7 @@ client.on('messageCreate', async message => {
         return message.reply({ embeds: [{ title: '🏆 قائمة أغنى أعضاء السيرفر', description: desc, color: 0xFFD700 }] });
     }
 
-    // 9. توب التفاعل اليومي
+    // 10. توب التفاعل اليومي
     if (command === '!topday' || command === '!day') {
         if (!message.member.roles.cache.has(REQUIRED_ROLE_ID)) return;
 
@@ -279,7 +290,7 @@ client.on('messageCreate', async message => {
         });
     }
 
-    // 10. الإذاعة السريعة
+    // 11. الإذاعة السريعة
     if (command === '!all') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const broadcastMsg = args.slice(1).join(' ');
