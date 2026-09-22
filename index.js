@@ -64,6 +64,7 @@ const client = new Client({
 });
 
 const REQUIRED_ROLE_ID = '1537274972597260379';
+const BYPASS_ROLE_ID = '1535139464702066788'; // رتبة عدم إخفاء الرومات الجديدة
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 client.once('ready', () => {
@@ -118,7 +119,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
     }
 
-    // 3. إضافة كوينز (للأيديات فقط)
+    // 3. إضافة كوينز لعضو
     if (command === '!addcoins') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -129,7 +130,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تمت اضافة المبلغ \`${amount}\` الى <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 4. السحب (للأيديات فقط)
+    // 4. سحب كوينز من عضو
     if (command === '!withdraw' || command === '!سحب') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -140,7 +141,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 5. التصفير (للأيديات فقط)
+    // 5. تصفير رصيد عضو
     if (command === '!reset' || command === '!تصفير') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -151,7 +152,49 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 6. التوب الاقتصادي
+    // 6. أمر إخفاء الرومات للجميع مع استثناء الرتبة المحددة
+    if (command === '!اخفاء' || command === '!اخفاء_الرومات' || command === '!hideall') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+
+        message.channel.send('⏳ جاري إخفاء الرومات للجميع...');
+        try {
+            const channels = message.guild.channels.cache;
+            for (const [id, channel] of channels) {
+                // إخفاء عن Everyone
+                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                    ViewChannel: false
+                }).catch(() => {});
+
+                // استثناء رتبة الأعضاء الذين لا تختفي عندهم الرومات
+                await channel.permissionOverwrites.edit(BYPASS_ROLE_ID, {
+                    ViewChannel: true
+                }).catch(() => {});
+            }
+            return message.reply('✅ تم إخفاء جميع الرومات بنجاح (مع إبقاء الرومات ظاهرة لأصحاب الرتبة المحددة) ✓');
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء إخفاء الرومات.');
+        }
+    }
+
+    // 7. أمر إظهار الرومات لجميع الأعضاء
+    if (command === '!اظهار' || command === '!اظهار_الرومات' || command === '!showall') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+
+        message.channel.send('⏳ جاري إظهار الرومات للجميع...');
+        try {
+            const channels = message.guild.channels.cache;
+            for (const [id, channel] of channels) {
+                await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+                    ViewChannel: null
+                }).catch(() => {});
+            }
+            return message.reply('✅ تم إظهار جميع الرومات لجميع الأعضاء بنجاح ✓');
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء إظهار الرومات.');
+        }
+    }
+
+    // 8. التوب الاقتصادي
     if (command === '!top' || command === '!المتصدرين') {
         const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
         if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
@@ -165,7 +208,7 @@ client.on('messageCreate', async message => {
         return message.reply({ embeds: [{ title: '🏆 قائمة أغنى أعضاء السيرفر', description: desc, color: 0xFFD700 }] });
     }
 
-    // 7. توب التفاعل اليومي
+    // 9. توب التفاعل اليومي
     if (command === '!topday' || command === '!day') {
         if (!message.member.roles.cache.has(REQUIRED_ROLE_ID)) return;
 
@@ -193,7 +236,7 @@ client.on('messageCreate', async message => {
         });
     }
 
-    // 8. الإذاعة السريعة
+    // 10. الإذاعة السريعة
     if (command === '!all') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const broadcastMsg = args.slice(1).join(' ');
