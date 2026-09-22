@@ -86,7 +86,6 @@ const AUTHORIZED_ROLES = [
     '1551588105750847558'
 ];
 
-// دالة للتحقق مما إذا كان المستخدم يمتلك صلاحية استخدام الأوامر الإدارية
 function hasPermission(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
@@ -96,6 +95,7 @@ function hasPermission(member) {
 client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 
+    // تصفير إحصائيات التفاعل اليومية الساعة 2 ليلاً بتوقيت ليبيا
     setInterval(() => {
         const now = new Date();
         const libyaHours = (now.getUTCHours() + 2) % 24;
@@ -107,6 +107,29 @@ client.once('ready', () => {
             console.log('🔄 تم تصفير إحصائيات التفاعل اليومية بنجاح.');
         }
     }, 60000); 
+
+    // نظام لحساب دقائق الفويس "لحظة بلحظة" (كل دقيقة يتم إضافة الدقائق تلقائياً للمتكتدين في الرومات الصوتية)
+    setInterval(() => {
+        const now = Date.now();
+        for (const [userId, startTime] of Object.entries(voiceTracker)) {
+            const guild = client.guilds.cache.first(); // أو تحديد السيرفر مباشرة
+            if (guild) {
+                const member = guild.members.cache.get(userId);
+                // التأكد أن العضو ما زال موجود بالفويس ولديه الرتبة المطلوبة
+                if (member && member.voice.channel && member.roles.cache.has(REQUIRED_ROLE_ID)) {
+                    const diffMinutes = Math.floor((now - startTime) / 60000);
+                    if (diffMinutes >= 1) {
+                        if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
+                        statsData[userId].voiceMinutes += diffMinutes;
+                        voiceTracker[userId] = now; // تحديث وقت البداية للدقيقة القادمة
+                        saveStats();
+                    }
+                } else {
+                    delete voiceTracker[userId]; // إذا خرج من الفويس أو سحبت منه الرتبة
+                }
+            }
+        }
+    }, 60000); // يتم التحقق والحفظ كل دقيقة
 });
 
 client.on('messageCreate', async message => {
@@ -352,17 +375,19 @@ client.on('messageCreate', async message => {
     }
 });
 
-// تتبع الفويس
+// تتبع الفويس المحدث (يحسب لحظة بلحظة ويحفظ الدقائق دورياً)
 client.on('voiceStateUpdate', (oldState, newState) => {
     const member = newState.member || oldState.member;
     if (!member || member.user.bot) return;
     const userId = member.id;
 
+    // دخوله للفويس أو انتقاله من روم لآخر
     if (!oldState.channelId && newState.channelId) {
         if (member.roles.cache.has(REQUIRED_ROLE_ID)) {
             voiceTracker[userId] = Date.now();
         }
     } 
+    // خروجه التام من الفويس
     else if (oldState.channelId && !newState.channelId) {
         if (voiceTracker[userId]) {
             const duration = Math.floor((Date.now() - voiceTracker[userId]) / 60000);
