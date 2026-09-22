@@ -24,7 +24,7 @@ let statsData = {};
 let voiceTracker = {}; 
 let channelPermsBackup = {};
 let autoImageChannels = [];
-let weeklyStats = {}; // { userId: { messages: 0, voiceMinutes: 0, claims: 0 } }
+let weeklyStats = {}; 
 
 if (fs.existsSync(DATA_FILE)) {
     try { coinsData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { coinsData = {}; }
@@ -105,6 +105,9 @@ const BYPASS_ROLE_ID = '1535139464702066788';
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
+// 📌 أيدي الرتبة المطلوبة للعضو الذي يتم فحصه
+const ID_COMMAND_TARGET_ROLE = '1537274972597260379'; 
+
 const AUTHORIZED_ROLES = [
     '1535139464702066788',
     '1551588405836648571',
@@ -123,7 +126,6 @@ function hasPermission(member) {
 client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 
-    // تصفير يومي للإحصائيات اليومية الساعة 2:00 ليلاً بتوقيت ليبيا
     setInterval(() => {
         const now = new Date();
         const libyaHours = (now.getUTCHours() + 2) % 24;
@@ -136,14 +138,12 @@ client.once('ready', () => {
         }
     }, 60000); 
 
-    // تصفير إحصائيات الأسبوع (الرسائل، الفويس، التكتات) كل يوم سبت الساعة 12:00 ليلاً بتوقيت ليبيا
     setInterval(() => {
         const now = new Date();
-        const libyaDay = (now.getUTCDay() + (now.getUTCHours() + 2 >= 24 ? 1 : 0)) % 7; // يوم الأسبوع بتوقيت ليبيا (السبت = 6)
+        const libyaDay = (now.getUTCDay() + (now.getUTCHours() + 2 >= 24 ? 1 : 0)) % 7;
         const libyaHours = (now.getUTCHours() + 2) % 24;
         const libyaMinutes = now.getUTCMinutes();
 
-        // السبت هو اليوم رقم 6 (الأحد 0، الإثنين 1 ... السبت 6)
         if (libyaDay === 6 && libyaHours === 0 && libyaMinutes === 0) {
             weeklyStats = {};
             saveWeeklyStats();
@@ -162,11 +162,8 @@ client.once('ready', () => {
                     if (diffMinutes >= 1) {
                         if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
                         statsData[userId].voiceMinutes += diffMinutes;
-                        
-                        // تتبع إحصائيات الأسبوع للفويس
                         const wData = getWeeklyData(userId);
                         wData.voiceMinutes += diffMinutes;
-
                         voiceTracker[userId] = now;
                         saveStats();
                         saveWeeklyStats();
@@ -186,17 +183,14 @@ client.on('messageCreate', async message => {
     const command = args[0].toLowerCase();
     const userId = message.author.id;
 
-    // تتبع الرسائل في الأسبوع ومعرفة كلمة "استلام" بسريّة خلف الكواليس
     const wData = getWeeklyData(userId);
     wData.messages += 1;
 
-    // فحص إذا رسالته تحتوي على كلمة "استلام" (بدون ما يدرون الأعضاء)
     if (message.content.includes('استلام')) {
         wData.claims += 1;
     }
     saveWeeklyStats();
 
-    // 🔗 أمر تفعيل الخط التلقائي
     if ((command === '.تفعيل' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-تفعيل') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -209,7 +203,6 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
     }
 
-    // 🔗 أمر إلغاء تفعيل الخط التلقائي
     if ((command === '.إلغاء' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-إلغاء') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -223,12 +216,11 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
     }
 
-    // 🖼️ إرسال صورة الخط تلقائياً لأي رسالة تنكتب في الرومات المفعلة
     if (autoImageChannels.includes(message.channel.id)) {
         try {
             await message.channel.send({ files: [TARGET_IMAGE_URL] });
         } catch (err) {
-            console.error('خطأ أثناء إرسال صورة الخط التلقائية:', err);
+            console.error('خطأ أثناء إرسال الصورة التلقائية:', err);
         }
     }
 
@@ -240,13 +232,17 @@ client.on('messageCreate', async message => {
 
     // 🔍 أمر فحص العضو (-id @الشخص)
     if (command === '-id') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فحصه! مثال: `-id @الشخص`');
         
+        if (!targetMember.roles.cache.has(ID_COMMAND_TARGET_ROLE)) {
+            return;
+        }
+
         const targetId = targetMember.id;
         const targetWeekly = getWeeklyData(targetId);
-        
-        // تحويل الدقائق إلى ساعات
         const hoursInVoice = (targetWeekly.voiceMinutes / 60).toFixed(1);
 
         return message.reply(
@@ -257,7 +253,6 @@ client.on('messageCreate', async message => {
         );
     }
 
-    // بقية الأوامر
     if (command === '-قبول' || command === '!قبول') {
         if (!hasPermission(message.member)) return;
         const targetMember = message.mentions.members.first();
@@ -443,7 +438,6 @@ client.on('messageCreate', async message => {
     }
 });
 
-// تتبع الفويس
 client.on('voiceStateUpdate', (oldState, newState) => {
     const member = newState.member || oldState.member;
     if (!member || member.user.bot) return;
@@ -460,11 +454,8 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             if (duration > 0) {
                 if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
                 statsData[userId].voiceMinutes += duration;
-
-                // تتبع الفويس للأسبوع
                 const wData = getWeeklyData(userId);
                 wData.voiceMinutes += duration;
-
                 saveStats();
                 saveWeeklyStats();
             }
