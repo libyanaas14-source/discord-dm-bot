@@ -118,7 +118,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
     }
 
-    // 3. إضافة كوينز (للأيديات فقط) مع الرسالة المخصصة
+    // 3. إضافة كوينز (للأيديات فقط)
     if (command === '!addcoins') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
@@ -126,7 +126,7 @@ client.on('messageCreate', async message => {
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!addcoins @user [المبلغ]`');
 
         addCoins(targetUser.id, amount);
-        return message.reply(`تمت إضافة \`${amount}\` الي العضو <@${targetUser.id}> بنجاح`);
+        return message.reply(`تمت اضافة المبلغ \`${amount}\` الى <@${targetUser.id}> بنجاح ✓`);
     }
 
     // 4. السحب (للأيديات فقط)
@@ -137,7 +137,7 @@ client.on('messageCreate', async message => {
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!سحب @user [المبلغ]`');
 
         removeCoins(targetUser.id, amount);
-        return message.reply(`✅ تم سحب **${amount}** كوينز من العضو <@${targetUser.id}>.`);
+        return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
     }
 
     // 5. التصفير (للأيديات فقط)
@@ -148,7 +148,7 @@ client.on('messageCreate', async message => {
 
         coinsData[targetUser.id] = { coins: 0 };
         saveCoins();
-        return message.reply(`🔄 تم تصفير رصيد العضو <@${targetUser.id}> بنجاح.`);
+        return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
     // 6. التوب الاقتصادي
