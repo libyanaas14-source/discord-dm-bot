@@ -168,6 +168,7 @@ function canKick(member) {
 client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 
+    // تصفير إحصائيات التفاعل اليومية الساعة 2:00 صباحاً بتوقيت ليبيا بدقة
     setInterval(() => {
         const now = new Date();
         const libyaHours = (now.getUTCHours() + 2) % 24;
@@ -352,6 +353,27 @@ client.on('messageCreate', async message => {
             }
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء تعديل اللقب (تأكد من أن رتبة البوت أعلى من رتبة العضو المستهدف وأن لديه صلاحية تغيير الألقاب).');
+        }
+    }
+
+    // 🎙️ أمر دخول البوت لفويس مع ميوت ودَفن (مخصص لك ولصديقك فقط)
+    if (command === 'دخل') {
+        if (!ADMIN_IDS.includes(message.author.id)) return; // مخصص لـ ADMIN_IDS فقط
+
+        const voiceChannel = message.mentions.channels.first() || message.guild.channels.cache.get(args[1]);
+
+        if (!voiceChannel || voiceChannel.type !== 2) { 
+            return message.reply('❌ يرجى منشن الروم الصوتي المراد دخول البوت إليه! مثال: `دخل #VoiceRoom`');
+        }
+
+        try {
+            await message.guild.members.me.voice.setChannel(voiceChannel);
+            await message.guild.members.me.voice.setMute(true);
+            await message.guild.members.me.voice.setDeaf(true);
+            return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) وتم عمل ميوت ودَفن بنجاح ✓`);
+        } catch (err) {
+            console.error('خطأ أثناء إدخال البوت للفويس:', err);
+            return message.reply('❌ حدث خطأ أثناء محاولة إدخال البوت للفويس (تأكد من صلاحيات البوت).');
         }
     }
 
