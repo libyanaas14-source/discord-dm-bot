@@ -404,20 +404,41 @@ client.on('messageCreate', async message => {
         return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓\nعدد التحذيرات: \`${userWarns.length}\``);
     }
 
-    // ⏰ أمر إعطاء تايم (-تايم @user [الوقت بالدقائق])
+    // ⏰ أمر إعطاء تايم مرن (-تايم @user [المدة m/h/d])
     if (command === 'تايم') {
         if (!hasPermission(message.member)) return;
         const targetMember = message.mentions.members.first();
-        const durationMinutes = parseInt(args[2]);
-        if (!targetMember || !durationMinutes || durationMinutes <= 0) {
-            return message.reply('❌ الاستخدام الصحيح: `-تايم @user [المدة بالدقائق]`');
+        const timeArg = args[2];
+        if (!targetMember || !timeArg) {
+            return message.reply('❌ الاستخدام الصحيح: `-تايم @user [المدة] (مثال: 10m أو 2h أو 1d)`');
+        }
+
+        const match = timeArg.match(/^(\d+)([mhd])$/i);
+        if (!match) {
+            return message.reply('❌ الصيغة خاطئة! يكتب الرقم متبوعاً بـ m للدقائق، h للساعات، أو d للأيام. (مثال: `10m`)');
+        }
+
+        const value = parseInt(match[1]);
+        const unit = match[2].toLowerCase();
+        let durationMs = 0;
+        let displayTime = '';
+
+        if (unit === 'm') {
+            durationMs = value * 60 * 1000;
+            displayTime = `${value}د`;
+        } else if (unit === 'h') {
+            durationMs = value * 60 * 60 * 1000;
+            displayTime = `${value}س`;
+        } else if (unit === 'd') {
+            durationMs = value * 24 * 60 * 60 * 1000;
+            displayTime = `${value}يوم`;
         }
 
         try {
-            await targetMember.timeout(durationMinutes * 60 * 1000, `بواسطة: ${message.author.tag}`);
-            return message.reply(`تم اعطاء تايم ل العضو <@${targetMember.id}> لمدة \`${durationMinutes}د\` بنجاح✓`);
+            await targetMember.timeout(durationMs, `بواسطة: ${message.author.tag}`);
+            return message.reply(`تم اعطاء تايم ل العضو <@${targetMember.id}> لمدة \`${displayTime}\` بنجاح✓`);
         } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء إعطاء التايم (تأكد من رتبة البوت).');
+            return message.reply('❌ حدث خطأ أثناء إعطاء التايم (تأكد من رتبة البوت وأن صلاحياته أعلى من العضو).');
         }
     }
 
