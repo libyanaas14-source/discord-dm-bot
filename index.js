@@ -33,7 +33,7 @@ if (fs.existsSync(DATA_FILE)) {
 }
 
 if (fs.existsSync(STATS_FILE)) {
-    try { statsData = JSON.parse(statsData = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8'))); } catch (e) { statsData = {}; }
+    try { statsData = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8')); } catch (e) { statsData = {}; }
 }
 
 if (fs.existsSync(PERMS_BACKUP_FILE)) {
@@ -116,8 +116,8 @@ const client = new Client({
 });
 
 const REQUIRED_ROLE_ID = '1537274972597260379';
-const WARNINGS_ROLE_ID = '1543459842595889203'; // رتبة التحذيرات الجديدة
-const TIMEOUT_ROLE_ID = '1537274972597260379';  // رتبة التايم السابقة
+const WARNINGS_ROLE_ID = '1543459842595889203'; 
+const TIMEOUT_ROLE_ID = '1537274972597260379';  
 const BYPASS_ROLE_ID = '1535139464702066788'; 
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
@@ -141,18 +141,23 @@ function hasPermission(member) {
     return member.roles.cache.some(role => AUTHORIZED_ROLES.includes(role.id));
 }
 
-// دالة خاصة بأوامر التحذيرات (تتطلب رتبة WARNINGS_ROLE_ID أو الأيديهات)
 function canManageWarnings(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
     return member.roles.cache.has(WARNINGS_ROLE_ID);
 }
 
-// دالة خاصة بأمر التايم (تتطلب رتبة TIMEOUT_ROLE_ID أو الأيديهات)
 function canManageTimeout(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
     return member.roles.cache.has(TIMEOUT_ROLE_ID);
+}
+
+// دالة التحقق لأمر النك (تتطلب رتبة REQUIRED_ROLE_ID أو الأيديهات الخاصة بك وبصديقك)
+function canManageNickname(member) {
+    if (!member) return false;
+    if (ADMIN_IDS.includes(member.id)) return true;
+    return member.roles.cache.has(REQUIRED_ROLE_ID);
 }
 
 function canKick(member) {
@@ -327,6 +332,29 @@ client.on('messageCreate', async message => {
         );
     }
 
+    // ✏️ أمر تغيير اللقب (نك @الشخص الاسم_الجديد)
+    if (command === 'نك') {
+        if (!canManageNickname(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        
+        const targetMember = message.mentions.members.first();
+        const newNickname = args.slice(2).join(' ');
+
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن الشخص المراد تغيير لقبه! مثال: `نك @الشخص الاسم_الجديد`');
+        }
+
+        if (!newNickname) {
+            return message.reply('❌ يرجى كتابة اللقب الجديد بعد المنشن!');
+        }
+
+        try {
+            await targetMember.setNickname(newNickname, `بواسطة المشرف: ${message.author.tag}`);
+            return message.reply(`✅ تم تغيير لقب العضو <@${targetMember.id}> بنجاح إلى: **${newNickname}** ✓`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء تغيير اللقب (تأكد من أن رتبة البوت أعلى من رتبة العضو المستهدف وأن لديه صلاحية تغيير الألقاب).');
+        }
+    }
+
     if (command === 'قبول') {
         if (!hasPermission(message.member)) return;
         const targetMember = message.mentions.members.first();
@@ -399,7 +427,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 🛑 أمر التحذير (تحذير @user [السبب]) - رتبة 1543459842595889203 فقط أو الأيديهات
+    // 🛑 أمر التحذير (تحذير @user [السبب])
     if (command === 'تحذير') {
         if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first();
@@ -413,7 +441,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تحذير العضو <@${targetMember.id}> بنجاح✓\nالسبب: ${reason}\nعدد التحذيرات: \`${userWarns.length}\``);
     }
 
-    // 🛑 أمر إزالة التحذير (انتحذير @user) - رتبة 1543459842595889203 فقط أو الأيديهات
+    // 🛑 أمر إزالة التحذير (انتحذير @user)
     if (command === 'انتحذير') {
         if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first();
@@ -428,7 +456,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓\nعدد التحذيرات: \`${userWarns.length}\``);
     }
 
-    // 📋 أمر عرض التحذيرات (تحذيرات @user) - رتبة 1543459842595889203 فقط أو الأيديهات
+    // 📋 أمر عرض التحذيرات (تحذيرات @user)
     if (command === 'تحذيرات') {
         if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first() || message.member;
