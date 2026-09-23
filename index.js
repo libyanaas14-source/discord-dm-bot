@@ -33,7 +33,7 @@ if (fs.existsSync(DATA_FILE)) {
 }
 
 if (fs.existsSync(STATS_FILE)) {
-    try { statsData = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8')); } catch (e) { statsData = {}; }
+    try { statsData = JSON.parse(statsData = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8'))); } catch (e) { statsData = {}; }
 }
 
 if (fs.existsSync(PERMS_BACKUP_FILE)) {
@@ -116,6 +116,8 @@ const client = new Client({
 });
 
 const REQUIRED_ROLE_ID = '1537274972597260379';
+const WARNINGS_ROLE_ID = '1543459842595889203'; // رتبة التحذيرات الجديدة
+const TIMEOUT_ROLE_ID = '1537274972597260379';  // رتبة التايم السابقة
 const BYPASS_ROLE_ID = '1535139464702066788'; 
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
@@ -139,10 +141,18 @@ function hasPermission(member) {
     return member.roles.cache.some(role => AUTHORIZED_ROLES.includes(role.id));
 }
 
-function canManageWarningsOrTimeout(member) {
+// دالة خاصة بأوامر التحذيرات (تتطلب رتبة WARNINGS_ROLE_ID أو الأيديهات)
+function canManageWarnings(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
-    return member.roles.cache.has(REQUIRED_ROLE_ID);
+    return member.roles.cache.has(WARNINGS_ROLE_ID);
+}
+
+// دالة خاصة بأمر التايم (تتطلب رتبة TIMEOUT_ROLE_ID أو الأيديهات)
+function canManageTimeout(member) {
+    if (!member) return false;
+    if (ADMIN_IDS.includes(member.id)) return true;
+    return member.roles.cache.has(TIMEOUT_ROLE_ID);
 }
 
 function canKick(member) {
@@ -207,7 +217,6 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
-    // إذا كانت الرسالة تبدأ بـ - يتم تجاهلها تماماً ولا تنفذ أي أمر
     if (message.content.startsWith('-')) return;
 
     const args = message.content.trim().split(/ +/);
@@ -390,9 +399,9 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    // 🛑 أمر التحذير (تحذير @user [السبب])
+    // 🛑 أمر التحذير (تحذير @user [السبب]) - رتبة 1543459842595889203 فقط أو الأيديهات
     if (command === 'تحذير') {
-        if (!canManageWarningsOrTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first();
         const reason = args.slice(2).join(' ') || 'بدون سبب';
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد تحذيره!');
@@ -404,9 +413,9 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تحذير العضو <@${targetMember.id}> بنجاح✓\nالسبب: ${reason}\nعدد التحذيرات: \`${userWarns.length}\``);
     }
 
-    // 🛑 أمر إزالة التحذير (انتحذير @user)
+    // 🛑 أمر إزالة التحذير (انتحذير @user) - رتبة 1543459842595889203 فقط أو الأيديهات
     if (command === 'انتحذير') {
-        if (!canManageWarningsOrTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
 
@@ -419,9 +428,24 @@ client.on('messageCreate', async message => {
         return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓\nعدد التحذيرات: \`${userWarns.length}\``);
     }
 
+    // 📋 أمر عرض التحذيرات (تحذيرات @user) - رتبة 1543459842595889203 فقط أو الأيديهات
+    if (command === 'تحذيرات') {
+        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        const targetMember = message.mentions.members.first() || message.member;
+        const userWarns = getWarnings(targetMember.id);
+
+        if (userWarns.length === 0) {
+            return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`0\``);
+        }
+
+        let warnsList = userWarns.map((w, index) => `> **#${index + 1}** | السبب: ${w.reason} (التاريخ: ${w.date})`).join('\n');
+
+        return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`${userWarns.length}\`\n\n**الأسباب:**\n${warnsList}`);
+    }
+
     // ⏰ أمر إعطاء تايم مرن (تايم @user [المدة m/h/d])
     if (command === 'تايم') {
-        if (!canManageWarningsOrTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        if (!canManageTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first();
         const timeArg = args[2];
         if (!targetMember || !timeArg) {
@@ -459,7 +483,7 @@ client.on('messageCreate', async message => {
 
     // ⏰ أمر إزالة التايم (انتايم @user)
     if (command === 'انتايم') {
-        if (!canManageWarningsOrTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        if (!canManageTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
 
@@ -469,21 +493,6 @@ client.on('messageCreate', async message => {
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء إزالة التايم.');
         }
-    }
-
-    // 📋 أمر عرض التحذيرات مع الأسباب (تحذيرات @user)
-    if (command === 'تحذيرات') {
-        if (!canManageWarningsOrTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
-        const targetMember = message.mentions.members.first() || message.member;
-        const userWarns = getWarnings(targetMember.id);
-
-        if (userWarns.length === 0) {
-            return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`0\``);
-        }
-
-        let warnsList = userWarns.map((w, index) => `> **#${index + 1}** | السبب: ${w.reason} (التاريخ: ${w.date})`).join('\n');
-
-        return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`${userWarns.length}\`\n\n**الأسباب:**\n${warnsList}`);
     }
 
     // 👢 أمر الطرد (برا @user)
