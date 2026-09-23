@@ -244,7 +244,20 @@ client.on('messageCreate', async message => {
 
         autoImageChannels.push(message.channel.id);
         saveAutoChannels();
-        return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);     }      if (command === 'إلغاء') {         if (!ADMIN_IDS.includes(message.author.id)) return;          const index = autoImageChannels.indexOf(message.channel.id);         if (index === -1) {             return message.reply('⚠️ الخط التلقائي غير مفعل أصلاً في هذا الروم!');         }          autoImageChannels.splice(index, 1);         saveAutoChannels();         return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
+        return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
+    }
+
+    if (command === 'إلغاء') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+
+        const index = autoImageChannels.indexOf(message.channel.id);
+        if (index === -1) {
+            return message.reply('⚠️ الخط التلقائي غير مفعل أصلاً في هذا الروم!');
+        }
+
+        autoImageChannels.splice(index, 1);
+        saveAutoChannels();
+        return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
     }
 
     if (autoImageChannels.includes(message.channel.id)) {
@@ -274,7 +287,15 @@ client.on('messageCreate', async message => {
                 return message.reply('❌ لا يوجد أي شخص يحمل هذه الرتبة حالياً في السيرفر.');
             }
 
-            let listDescription = membersWithRole.map(member => `🔹 <@${member.id}> (\`${member.user.tag}\`)`).join('\n');              if (listDescription.length > 4096) {                 listDescription = listDescription.substring(0, 4093) + '...';             }              return message.reply({                 embeds: [{                     title: `👑 قائمة الأعضاء الذين يحملون رتبة الإدارة (${membersWithRole.size})`,
+            let listDescription = membersWithRole.map(member => `🔹 <@${member.id}> (\`${member.user.tag}\`)`).join('\n');
+
+            if (listDescription.length > 4096) {
+                listDescription = listDescription.substring(0, 4093) + '...';
+            }
+
+            return message.reply({
+                embeds: [{
+                    title: `👑 قائمة الأعضاء الذين يحملون رتبة الإدارة (${membersWithRole.size})`,
                     description: listDescription,
                     color: 0x00FF00,
                     timestamp: new Date()
@@ -323,16 +344,18 @@ client.on('messageCreate', async message => {
 
         try {
             if (!newNickname) {
-                await targetMember.setNickname(null, `بواسطة المشرف: ${message.author.tag}`);                 return message.reply(`✅ تم إرجاع اسم العضو <@${targetMember.id}> إلى وضعه الأساسي بنجاح ✓`);
+                await targetMember.setNickname(null, `بواسطة المشرف: ${message.author.tag}`);
+                return message.reply(`✅ تم إرجاع اسم العضو <@${targetMember.id}> إلى وضعه الأساسي بنجاح ✓`);
             } else {
-                await targetMember.setNickname(newNickname, `بواسطة المشرف: ${message.author.tag}`);                 return message.reply(`✅ تم تغيير لقب العضو <@${targetMember.id}> بنجاح إلى: **${newNickname}** ✓`);
+                await targetMember.setNickname(newNickname, `بواسطة المشرف: ${message.author.tag}`);
+                return message.reply(`✅ تم تغيير لقب العضو <@${targetMember.id}> بنجاح إلى: **${newNickname}** ✓`);
             }
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء تعديل اللقب (تأكد من أن رتبة البوت أعلى من رتبة العضو المستهدف وأن لديه صلاحية تغيير الألقاب).');
         }
     }
 
-    // 🎙️ أمر دخول البوت لفويس (يدخل رومانسي تلقائياً مع ميوت ودَفن)
+    // 🎙️ أمر دخول البوت لفويس
     if (command === 'ادخل') {
         if (!ADMIN_IDS.includes(message.author.id)) return; 
 
@@ -345,7 +368,37 @@ client.on('messageCreate', async message => {
             await message.guild.members.me.voice.setChannel(voiceChannel);
             await message.guild.members.me.voice.setMute(true);
             await message.guild.members.me.voice.setDeaf(true);
-            return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) وتم عمل ميوت ودَفن بنجاح ✓`);         } catch (err) {             console.error('خطأ أثناء إدخال البوت للفويس:', err);             return message.reply('❌ حدث خطأ أثناء محاولة إدخال البوت للفويس (تأكد من صلاحيات البوت).');         }     }      // 🚪 أمر إخراج البوت من الفويس     if (command === 'اخرج') {         if (!ADMIN_IDS.includes(message.author.id)) return;          if (!message.guild.members.me.voice.channel) {             return message.reply('❌ البوت ليس موجوداً في أي روم صوتي أصلاً!');         }          try {             await message.guild.members.me.voice.setChannel(null);             return message.reply('✅ تم إخراج البوت من الروم الصوتي بنجاح ✓');         } catch (err) {             console.error('خطأ أثناء إخراج البوت من الفويس:', err);             return message.reply('❌ حدث خطأ أثناء محاولة إخراج البوت من الفويس.');         }     }      if (command === 'قبول') {         if (!hasPermission(message.member)) return;         const targetMember = message.mentions.members.first();         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد قبوله!');         try {             await targetMember.roles.add(REQUIRED_ROLE_ID);             return message.reply(`✅ تم قبول العضو <@${targetMember.id}> وإعطاؤه الرتبة بنجاح ✓`);
+            return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) وتم عمل ميوت ودَفن بنجاح ✓`);
+        } catch (err) {
+            console.error('خطأ أثناء إدخال البوت للفويس:', err);
+            return message.reply('❌ حدث خطأ أثناء محاولة إدخال البوت للفويس (تأكد من صلاحيات البوت).');
+        }
+    }
+
+    // 🚪 أمر إخراج البوت من الفويس
+    if (command === 'اخرج') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+
+        if (!message.guild.members.me.voice.channel) {
+            return message.reply('❌ البوت ليس موجوداً في أي روم صوتي أصلاً!');
+        }
+
+        try {
+            await message.guild.members.me.voice.setChannel(null);
+            return message.reply('✅ تم إخراج البوت من الروم الصوتي بنجاح ✓');
+        } catch (err) {
+            console.error('خطأ أثناء إخراج البوت من الفويس:', err);
+            return message.reply('❌ حدث خطأ أثناء محاولة إخراج البوت من الفويس.');
+        }
+    }
+
+    if (command === 'قبول') {
+        if (!hasPermission(message.member)) return;
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد قبوله!');
+        try {
+            await targetMember.roles.add(REQUIRED_ROLE_ID);
+            return message.reply(`✅ تم قبول العضو <@${targetMember.id}> وإعطاؤه الرتبة بنجاح ✓`);
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة.');
         }
@@ -359,7 +412,16 @@ client.on('messageCreate', async message => {
             const rolesToRemove = targetMember.roles.cache.filter(role => role.id !== message.guild.id && !role.managed);
             await targetMember.roles.remove(rolesToRemove);
             await targetMember.roles.add(TARGET_ROLE_DISMISS);
-            return message.reply(`✅ تم فصل العضو <@${targetMember.id}> وإعطاؤه رتبة الفصل بنجاح ✓`);         } catch (err) {             return message.reply('❌ حدث خطأ أثناء عملية الفصل.');         }     }      if (command === 'رصيد' \vert{}\vert{} command === 'coins' \vert{}\vert{} command === 'رصيدي') {         const targetUser = message.mentions.users.first() \vert{}\vert{} message.author;         const balance = getCoins(targetUser.id);         return message.reply(`رصيد العضو <@${targetUser.id}> هو: \`${balance}\` \`coins\`  🏦`);
+            return message.reply(`✅ تم فصل العضو <@${targetMember.id}> وإعطاؤه رتبة الفصل بنجاح ✓`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء عملية الفصل.');
+        }
+    }
+
+    if (command === 'رصيد' || command === 'coins' || command === 'رصيدي') {
+        const targetUser = message.mentions.users.first() || message.author;
+        const balance = getCoins(targetUser.id);
+        return message.reply(`رصيد العضو <@${targetUser.id}> هو: \`${balance}\` \`coins\`  🏦`);
     }
 
     if (command === 'اضافه' || command === 'addcoins') {
@@ -368,7 +430,17 @@ client.on('messageCreate', async message => {
         const amount = parseInt(args[1]);
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `اضافه @user [المبلغ]`');
         addCoins(targetUser.id, amount);
-        return message.reply(`تمت اضافة الى العضو <@${targetUser.id}> رصيد بمبلغ \`${amount}\` \`coins\`  🏦`);     }      if (command === 'pay' \vert{}\vert{} command === 'تحويل') {         const targetUser = message.mentions.users.first();         const amount = parseInt(args[1]);         if (!targetUser) return message.reply('❌ يرجى منشن الشخص المراد التحويل له!');         if (targetUser.id === message.author.id) return message.reply('❌ لا يمكنك التحويل لنفسك!');         if (!amount \vert{}\vert{} amount <= 0) return message.reply('❌ يرجى تحديد مبلغ صحيح!');         const senderBalance = getCoins(message.author.id);         if (senderBalance < amount) return message.reply(`❌ رصيدك غير كافي! (${senderBalance} كوينز).`);
+        return message.reply(`تمت اضافة الى العضو <@${targetUser.id}> رصيد بمبلغ \`${amount}\` \`coins\`  🏦`);
+    }
+
+    if (command === 'pay' || command === 'تحويل') {
+        const targetUser = message.mentions.users.first();
+        const amount = parseInt(args[1]);
+        if (!targetUser) return message.reply('❌ يرجى منشن الشخص المراد التحويل له!');
+        if (targetUser.id === message.author.id) return message.reply('❌ لا يمكنك التحويل لنفسك!');
+        if (!amount || amount <= 0) return message.reply('❌ يرجى تحديد مبلغ صحيح!');
+        const senderBalance = getCoins(message.author.id);
+        if (senderBalance < amount) return message.reply(`❌ رصيدك غير كافي! (${senderBalance} كوينز).`);
         removeCoins(message.author.id, amount);
         addCoins(targetUser.id, amount);
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
@@ -380,7 +452,16 @@ client.on('messageCreate', async message => {
         const amount = parseInt(args[1]);
         if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `سحب @user [المبلغ]`');
         removeCoins(targetUser.id, amount);
-        return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);     }      if (command === 'reset' \vert{}\vert{} command === 'تصفير') {         if (!ADMIN_IDS.includes(message.author.id)) return;         const targetUser = message.mentions.users.first();         if (!targetUser) return message.reply('❌ يرجى منشن العضو!');         coinsData[targetUser.id] = { coins: 0 };         saveCoins();         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
+        return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
+    }
+
+    if (command === 'reset' || command === 'تصفير') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+        const targetUser = message.mentions.users.first();
+        if (!targetUser) return message.reply('❌ يرجى منشن العضو!');
+        coinsData[targetUser.id] = { coins: 0 };
+        saveCoins();
+        return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
     if (command === 'تحذير') {
@@ -407,7 +488,16 @@ client.on('messageCreate', async message => {
             saveWarnings();
         }
 
-        return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓\nعدد التحذيرات: \`${userWarns.length}\``);     }      if (command === 'تحذيرات') {         if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');         const targetMember = message.mentions.members.first() \vert{}\vert{} message.member;         const userWarns = getWarnings(targetMember.id);          if (userWarns.length === 0) {             return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`0\``);
+        return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓\nعدد التحذيرات: \`${userWarns.length}\``);
+    }
+
+    if (command === 'تحذيرات') {
+        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        const targetMember = message.mentions.members.first() || message.member;
+        const userWarns = getWarnings(targetMember.id);
+
+        if (userWarns.length === 0) {
+            return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`0\``);
         }
 
         let warnsList = userWarns.map((w, index) => `> **#${index + 1}** | السبب: ${w.reason} (التاريخ: ${w.date})`).join('\n');
