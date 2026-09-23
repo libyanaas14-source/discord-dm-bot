@@ -153,7 +153,6 @@ function canManageTimeout(member) {
     return member.roles.cache.has(TIMEOUT_ROLE_ID);
 }
 
-// دالة التحقق لأمر النك (تتطلب رتبة REQUIRED_ROLE_ID أو الأيديهات الخاصة بك وبصديقك)
 function canManageNickname(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
@@ -332,7 +331,7 @@ client.on('messageCreate', async message => {
         );
     }
 
-    // ✏️ أمر تغيير اللقب (نك @الشخص الاسم_الجديد)
+    // ✏️ أمر تغيير اللقب أو إرجاعه للاسم الأساسي (نك @الشخص [الاسم])
     if (command === 'نك') {
         if (!canManageNickname(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         
@@ -340,18 +339,19 @@ client.on('messageCreate', async message => {
         const newNickname = args.slice(2).join(' ');
 
         if (!targetMember) {
-            return message.reply('❌ يرجى منشن الشخص المراد تغيير لقبه! مثال: `نك @الشخص الاسم_الجديد`');
-        }
-
-        if (!newNickname) {
-            return message.reply('❌ يرجى كتابة اللقب الجديد بعد المنشن!');
+            return message.reply('❌ يرجى منشن الشخص!\n• لتغيير اللقب: `نك @الشخص الاسم`\n• لإرجاع الاسم الأساسي: `نك @الشخص`');
         }
 
         try {
-            await targetMember.setNickname(newNickname, `بواسطة المشرف: ${message.author.tag}`);
-            return message.reply(`✅ تم تغيير لقب العضو <@${targetMember.id}> بنجاح إلى: **${newNickname}** ✓`);
+            if (!newNickname) {
+                await targetMember.setNickname(null, `بواسطة المشرف: ${message.author.tag}`);
+                return message.reply(`✅ تم إرجاع اسم العضو <@${targetMember.id}> إلى وضعه الأساسي بنجاح ✓`);
+            } else {
+                await targetMember.setNickname(newNickname, `بواسطة المشرف: ${message.author.tag}`);
+                return message.reply(`✅ تم تغيير لقب العضو <@${targetMember.id}> بنجاح إلى: **${newNickname}** ✓`);
+            }
         } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء تغيير اللقب (تأكد من أن رتبة البوت أعلى من رتبة العضو المستهدف وأن لديه صلاحية تغيير الألقاب).');
+            return message.reply('❌ حدث خطأ أثناء تعديل اللقب (تأكد من أن رتبة البوت أعلى من رتبة العضو المستهدف وأن لديه صلاحية تغيير الألقاب).');
         }
     }
 
