@@ -18,6 +18,7 @@ const STATS_FILE = './stats.json';
 const PERMS_BACKUP_FILE = './perms_backup.json';
 const AUTO_CHANNELS_FILE = './auto_channels.json';
 const WEEKLY_STATS_FILE = './weekly_stats.json';
+const WARNINGS_FILE = './warnings.json';
 
 let coinsData = {};
 let statsData = {}; 
@@ -25,6 +26,7 @@ let voiceTracker = {};
 let channelPermsBackup = {};
 let autoImageChannels = [];
 let weeklyStats = {}; 
+let warningsData = {};
 
 if (fs.existsSync(DATA_FILE)) {
     try { coinsData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { coinsData = {}; }
@@ -46,6 +48,10 @@ if (fs.existsSync(WEEKLY_STATS_FILE)) {
     try { weeklyStats = JSON.parse(fs.readFileSync(WEEKLY_STATS_FILE, 'utf8')); } catch (e) { weeklyStats = {}; }
 }
 
+if (fs.existsSync(WARNINGS_FILE)) {
+    try { warningsData = JSON.parse(fs.readFileSync(WARNINGS_FILE, 'utf8')); } catch (e) { warningsData = {}; }
+}
+
 function saveCoins() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(coinsData, null, 2));
 }
@@ -64,6 +70,10 @@ function saveAutoChannels() {
 
 function saveWeeklyStats() {
     fs.writeFileSync(WEEKLY_STATS_FILE, JSON.stringify(weeklyStats, null, 2));
+}
+
+function saveWarnings() {
+    fs.writeFileSync(WARNINGS_FILE, JSON.stringify(warningsData, null, 2));
 }
 
 function getCoins(userId) {
@@ -88,6 +98,11 @@ function getWeeklyData(userId) {
         weeklyStats[userId] = { messages: 0, voiceMinutes: 0, claims: 0 };
     }
     return weeklyStats[userId];
+}
+
+function getWarnings(userId) {
+    if (!warningsData[userId]) warningsData[userId] = [];
+    return warningsData[userId];
 }
 
 const client = new Client({
@@ -358,6 +373,94 @@ client.on('messageCreate', async message => {
         coinsData[targetUser.id] = { coins: 0 };
         saveCoins();
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
+    }
+
+    // 🛑 أمر التحذير (-تحذير @user [السبب])
+    if (command === 'تحذير') {
+        if (!hasPermission(message.member)) return;
+        const targetMember = message.mentions.members.first();
+        const reason = args.slice(2).join(' ') || 'بدون سبب';
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد تحذيره!');
+
+        const userWarns = getWarnings(targetMember.id);
+        userWarns.push({ reason, date: new Date().toLocaleDateString('ar-LY') });
+        saveWarnings();
+
+        return message.reply(`تم تحذير العضو <@${targetMember.id}> بنجاح✓\nالسبب: ${reason}\nعدد التحذيرات: \`${userWarns.length}\``);
+    }
+
+    // 🛑 أمر إزالة التحذير (-انتحذير @user)
+    if (command === 'انتحذير') {
+        if (!hasPermission(message.member)) return;
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
+
+        const userWarns = getWarnings(targetMember.id);
+        if (userWarns.length > 0) {
+            userWarns.pop();
+            saveWarnings();
+        }
+
+        return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓\nعدد التحذيرات: \`${userWarns.length}\``);
+    }
+
+    // ⏰ أمر إعطاء تايم (-تايم @user [الوقت بالدقائق])
+    if (command === 'تايم') {
+        if (!hasPermission(message.member)) return;
+        const targetMember = message.mentions.members.first();
+        const durationMinutes = parseInt(args[2]);
+        if (!targetMember || !durationMinutes || durationMinutes <= 0) {
+            return message.reply('❌ الاستخدام الصحيح: `-تايم @user [المدة بالدقائق]`');
+        }
+
+        try {
+            await targetMember.timeout(durationMinutes * 60 * 1000, `بواسطة: ${message.author.tag}`);
+            return message.reply(`تم اعطاء تايم ل العضو <@${targetMember.id}> لمدة \`${durationMinutes}د\` بنجاح✓`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء إعطاء التايم (تأكد من رتبة البوت).');
+        }
+    }
+
+    // ⏰ أمر إزالة التايم (-انتايم @user)
+    if (command === 'انتايم') {
+        if (!hasPermission(message.member)) return;
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
+
+        try {
+            await targetMember.timeout(null);
+            return message.reply(`تم الغاء التايم عن العضو <@${targetMember.id}> بنجاح✓`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء إزالة التايم.');
+        }
+    }
+
+    // 📋 أمر عرض التحذيرات مع الأسباب (-تحذيرات @user)
+    if (command === 'تحذيرات') {
+        const targetMember = message.mentions.members.first() || message.member;
+        const userWarns = getWarnings(targetMember.id);
+
+        if (userWarns.length === 0) {
+            return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`0\``);
+        }
+
+        let warnsList = userWarns.map((w, index) => `> **#${index + 1}** | السبب: ${w.reason} (التاريخ: ${w.date})`).join('\n');
+
+        return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`${userWarns.length}\`\n\n**الأسباب:**\n${warnsList}`);
+    }
+
+    // 👢 أمر الطرد (-برا @user)
+    if (command === 'برا') {
+        if (!hasPermission(message.member)) return;
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد طرده!');
+
+        try {
+            await targetMember.kick(`بواسطة المشرف: ${message.author.tag}`);
+            return message.reply(`يلا برا مع الباب <@${targetMember.id}>`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء محاولة طرد العضو (تأكد من صلاحيات البوت).');
+        }
     }
 
     if (command === 'اخفاء' || command === 'hideall') {
