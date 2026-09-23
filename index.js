@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits } = require('discord.js');
+const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const express = require('express');
 const fs = require('fs');
 
@@ -352,7 +353,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 🎙️ أمر دخول البوت لفويس (طريقة آمنة لا تتطلب حزم خارجية)
+    // 🎙️ أمر دخول البوت باستخدام مكتبة @discordjs/voice بشكل صحيح
     if (command === 'ادخل') {
         if (!ADMIN_IDS.includes(message.author.id)) return; 
 
@@ -362,11 +363,15 @@ client.on('messageCreate', async message => {
 
         try {
             const voiceChannel = message.member.voice.channel;
-            await message.guild.members.me.voice.setChannel(voiceChannel);
+            joinVoiceChannel({
+                channelId: voiceChannel.id,
+                guildId: voiceChannel.guild.id,
+                adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+            });
             return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) بنجاح ✓`);
         } catch (err) {
             console.error('خطأ أثناء إدخال البوت للفويس:', err);
-            return message.reply('❌ حدث خطأ: تأكد أن البوت متصل بروم صوتي مسبقاً أو أن لديه صلاحية الدخول.');
+            return message.reply('❌ حدث خطأ أثناء محاولة دخول البوت للصوت.');
         }
     }
 
@@ -375,11 +380,12 @@ client.on('messageCreate', async message => {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         try {
-            if (!message.guild.members.me.voice.channel) {
+            const connection = getVoiceConnection(message.guild.id);
+            if (!connection) {
                 return message.reply('❌ البوت ليس موجوداً في أي روم صوتي أصلاً!');
             }
 
-            await message.guild.members.me.voice.setChannel(null);
+            connection.destroy();
             return message.reply('✅ تم إخراج البوت من الروم الصوتي بنجاح ✓');
         } catch (err) {
             console.error('خطأ أثناء إخراج البوت من الفويس:', err);
