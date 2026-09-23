@@ -1,5 +1,4 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const express = require('express');
 const fs = require('fs');
 
@@ -353,7 +352,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 🎙️ أمر دخول البوت لفويس (محدث بالطريقة الصحيحة)
+    // 🎙️ أمر دخول البوت لفويس (طريقة آمنة لا تتطلب حزم خارجية)
     if (command === 'ادخل') {
         if (!ADMIN_IDS.includes(message.author.id)) return; 
 
@@ -363,19 +362,11 @@ client.on('messageCreate', async message => {
 
         try {
             const voiceChannel = message.member.voice.channel;
-            
-            const connection = joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: message.guild.id,
-                adapterCreator: message.guild.voiceAdapterCreator,
-                selfMute: true,
-                selfDeaf: true
-            });
-
-            return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) وتم عمل ميوت ودَفن بنجاح ✓`);
+            await message.guild.members.me.voice.setChannel(voiceChannel);
+            return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) بنجاح ✓`);
         } catch (err) {
             console.error('خطأ أثناء إدخال البوت للفويس:', err);
-            return message.reply('❌ حدث خطأ أثناء محاولة إدخال البوت للفويس (تأكد من صلاحيات البوت).');
+            return message.reply('❌ حدث خطأ: تأكد أن البوت متصل بروم صوتي مسبقاً أو أن لديه صلاحية الدخول.');
         }
     }
 
@@ -384,12 +375,11 @@ client.on('messageCreate', async message => {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         try {
-            const connection = getVoiceConnection(message.guild.id);
-            if (!connection) {
+            if (!message.guild.members.me.voice.channel) {
                 return message.reply('❌ البوت ليس موجوداً في أي روم صوتي أصلاً!');
             }
 
-            connection.destroy();
+            await message.guild.members.me.voice.setChannel(null);
             return message.reply('✅ تم إخراج البوت من الروم الصوتي بنجاح ✓');
         } catch (err) {
             console.error('خطأ أثناء إخراج البوت من الفويس:', err);
