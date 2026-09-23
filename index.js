@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits } = require('discord.js');
+const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const express = require('express');
 const fs = require('fs');
 
@@ -274,7 +275,6 @@ client.on('messageCreate', async message => {
         saveStats();
     }
 
-    // 👑 أمر عرض أعضاء الإدارة
     if (command === 'الادارة') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -308,7 +308,6 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 🔍 أمر فحص العضو (id @الشخص)
     if (command === 'id') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -331,7 +330,6 @@ client.on('messageCreate', async message => {
         );
     }
 
-    // ✏️ أمر تغيير اللقب أو إرجاعه للاسم الأساسي
     if (command === 'نك') {
         if (!canManageNickname(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         
@@ -355,7 +353,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 🎙️ أمر دخول البوت لفويس
+    // 🎙️ أمر دخول البوت لفويس (محدث بالطريقة الصحيحة)
     if (command === 'ادخل') {
         if (!ADMIN_IDS.includes(message.author.id)) return; 
 
@@ -365,9 +363,15 @@ client.on('messageCreate', async message => {
 
         try {
             const voiceChannel = message.member.voice.channel;
-            await message.guild.members.me.voice.setChannel(voiceChannel);
-            await message.guild.members.me.voice.setMute(true);
-            await message.guild.members.me.voice.setDeaf(true);
+            
+            const connection = joinVoiceChannel({
+                channelId: voiceChannel.id,
+                guildId: message.guild.id,
+                adapterCreator: message.guild.voiceAdapterCreator,
+                selfMute: true,
+                selfDeaf: true
+            });
+
             return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) وتم عمل ميوت ودَفن بنجاح ✓`);
         } catch (err) {
             console.error('خطأ أثناء إدخال البوت للفويس:', err);
@@ -379,12 +383,13 @@ client.on('messageCreate', async message => {
     if (command === 'اخرج') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
-        if (!message.guild.members.me.voice.channel) {
-            return message.reply('❌ البوت ليس موجوداً في أي روم صوتي أصلاً!');
-        }
-
         try {
-            await message.guild.members.me.voice.setChannel(null);
+            const connection = getVoiceConnection(message.guild.id);
+            if (!connection) {
+                return message.reply('❌ البوت ليس موجوداً في أي روم صوتي أصلاً!');
+            }
+
+            connection.destroy();
             return message.reply('✅ تم إخراج البوت من الروم الصوتي بنجاح ✓');
         } catch (err) {
             console.error('خطأ أثناء إخراج البوت من الفويس:', err);
