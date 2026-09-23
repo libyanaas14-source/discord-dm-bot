@@ -178,7 +178,6 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
-    // الشرط الأساسي: البوت يتفاعل فقط مع الأوامر التي تبدأ بـ -
     if (!message.content.startsWith('-')) return;
 
     const args = message.content.slice(1).trim().split(/ +/);
@@ -315,10 +314,19 @@ client.on('messageCreate', async message => {
         }
     }
 
-    if (command === 'coins' || command === 'رصيدي') {
+    if (command === 'رصيد' || command === 'coins' || command === 'رصيدي') {
         const targetUser = message.mentions.users.first() || message.author;
         const balance = getCoins(targetUser.id);
-        return message.reply(`💰 رصيد العضو <@${targetUser.id}> هو: **${balance}** كوينز.`);
+        return message.reply(`رصيد العضو <@${targetUser.id}> هو: \`${balance}\` \`coins\`  🏦`);
+    }
+
+    if (command === 'اضافه' || command === 'addcoins') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+        const targetUser = message.mentions.users.first();
+        const amount = parseInt(args[1]);
+        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `-اضافه @user [المبلغ]`');
+        addCoins(targetUser.id, amount);
+        return message.reply(`تمت اضافة الى العضو <@${targetUser.id}> رصيد بمبلغ \`${amount}\` \`coins\`  🏦`);
     }
 
     if (command === 'pay' || command === 'تحويل') {
@@ -332,15 +340,6 @@ client.on('messageCreate', async message => {
         removeCoins(message.author.id, amount);
         addCoins(targetUser.id, amount);
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
-    }
-
-    if (command === 'addcoins') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        const targetUser = message.mentions.users.first();
-        const amount = parseInt(args[1]);
-        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `-addcoins @user [المبلغ]`');
-        addCoins(targetUser.id, amount);
-        return message.reply(`تمت اضافة المبلغ \`${amount}\` الى <@${targetUser.id}> بنجاح ✓`);
     }
 
     if (command === 'withdraw' || command === 'سحب') {
