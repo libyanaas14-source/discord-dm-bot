@@ -105,7 +105,6 @@ const BYPASS_ROLE_ID = '1535139464702066788';
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
-// 📌 أيدي الرتبة المطلوبة للعضو الذي يتم فحصه
 const ID_COMMAND_TARGET_ROLE = '1537274972597260379'; 
 
 const AUTHORIZED_ROLES = [
@@ -179,7 +178,10 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
-    const args = message.content.split(' ');
+    // الشرط الأساسي: البوت يتفاعل فقط مع الأوامر التي تبدأ بـ -
+    if (!message.content.startsWith('-')) return;
+
+    const args = message.content.slice(1).trim().split(/ +/);
     const command = args[0].toLowerCase();
     const userId = message.author.id;
 
@@ -191,7 +193,7 @@ client.on('messageCreate', async message => {
     }
     saveWeeklyStats();
 
-    if ((command === '.تفعيل' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-تفعيل') {
+    if (command === 'تفعيل') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         if (autoImageChannels.includes(message.channel.id)) {
@@ -203,7 +205,7 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
     }
 
-    if ((command === '.إلغاء' && args[1] === 'الخط' && args[2] === 'التلقائي') || command === '-إلغاء') {
+    if (command === 'إلغاء') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         const index = autoImageChannels.indexOf(message.channel.id);
@@ -230,8 +232,8 @@ client.on('messageCreate', async message => {
         saveStats();
     }
 
-    // 👑 أمر عرض أعضاء الإدارة الذين يحملون الرتبة المحددة (مخصص لك ولصديقك فقط)
-    if (command === '!الادارة') {
+    // 👑 أمر عرض أعضاء الإدارة
+    if (command === 'الادارة') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         try {
@@ -265,7 +267,7 @@ client.on('messageCreate', async message => {
     }
 
     // 🔍 أمر فحص العضو (-id @الشخص)
-    if (command === '-id') {
+    if (command === 'id') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         const targetMember = message.mentions.members.first();
@@ -287,7 +289,7 @@ client.on('messageCreate', async message => {
         );
     }
 
-    if (command === '-قبول' || command === '!قبول') {
+    if (command === 'قبول') {
         if (!hasPermission(message.member)) return;
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد قبوله!');
@@ -299,7 +301,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    if (command === '-فصل' || command === '!فصل') {
+    if (command === 'فصل') {
         if (!hasPermission(message.member)) return;
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فصله!');
@@ -313,15 +315,15 @@ client.on('messageCreate', async message => {
         }
     }
 
-    if (command === '!coins' || command === '!رصيدي') {
+    if (command === 'coins' || command === 'رصيدي') {
         const targetUser = message.mentions.users.first() || message.author;
         const balance = getCoins(targetUser.id);
         return message.reply(`💰 رصيد العضو <@${targetUser.id}> هو: **${balance}** كوينز.`);
     }
 
-    if (command === '!pay' || command === '!تحويل') {
+    if (command === 'pay' || command === 'تحويل') {
         const targetUser = message.mentions.users.first();
-        const amount = parseInt(args[2]);
+        const amount = parseInt(args[1]);
         if (!targetUser) return message.reply('❌ يرجى منشن الشخص المراد التحويل له!');
         if (targetUser.id === message.author.id) return message.reply('❌ لا يمكنك التحويل لنفسك!');
         if (!amount || amount <= 0) return message.reply('❌ يرجى تحديد مبلغ صحيح!');
@@ -332,25 +334,25 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
     }
 
-    if (command === '!addcoins') {
+    if (command === 'addcoins') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
-        const amount = parseInt(args[2]);
-        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!addcoins @user [المبلغ]`');
+        const amount = parseInt(args[1]);
+        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `-addcoins @user [المبلغ]`');
         addCoins(targetUser.id, amount);
         return message.reply(`تمت اضافة المبلغ \`${amount}\` الى <@${targetUser.id}> بنجاح ✓`);
     }
 
-    if (command === '!withdraw' || command === '!سحب') {
+    if (command === 'withdraw' || command === 'سحب') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
-        const amount = parseInt(args[2]);
-        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `!سحب @user [المبلغ]`');
+        const amount = parseInt(args[1]);
+        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `-سحب @user [المبلغ]`');
         removeCoins(targetUser.id, amount);
         return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
     }
 
-    if (command === '!reset' || command === '!تصفير') {
+    if (command === 'reset' || command === 'تصفير') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const targetUser = message.mentions.users.first();
         if (!targetUser) return message.reply('❌ يرجى منشن العضو!');
@@ -359,7 +361,7 @@ client.on('messageCreate', async message => {
         return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
     }
 
-    if (command === '!اخفاء' || command === '!اخفاء_الرومات' || command === '!hideall') {
+    if (command === 'اخفاء' || command === 'hideall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         message.channel.send('⏳ جاري حفظ صلاحيات الرومات وإخفائها...');
         try {
@@ -382,7 +384,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    if (command === '!اظهار' || command === '!اظهار_الرومات' || command === '!showall') {
+    if (command === 'اظهار' || command === 'showall') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         message.channel.send('⏳ جاري استعادة الصلاحيات وإظهار الرومات...');
         try {
@@ -412,7 +414,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    if (command === '!top' || command === '!المتصدرين') {
+    if (command === 'top' || command === 'المتصدرين') {
         const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
         if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
         let desc = '';
@@ -423,7 +425,7 @@ client.on('messageCreate', async message => {
         return message.reply({ embeds: [{ title: '🏆 قائمة أغنى أعضاء السيرفر', description: desc, color: 0xFFD700 }] });
     }
 
-    if (command === '!topday' || command === '!day') {
+    if (command === 'topday' || command === 'day') {
         if (!message.member.roles.cache.has(REQUIRED_ROLE_ID)) return;
         const filterRole = ([userId]) => {
             const member = message.guild.members.cache.get(userId);
@@ -448,7 +450,7 @@ client.on('messageCreate', async message => {
         });
     }
 
-    if (command === '!all') {
+    if (command === 'all') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
         const broadcastMsg = args.slice(1).join(' ');
         if (!broadcastMsg) return message.reply('يرجى كتابة الرسالة!');
