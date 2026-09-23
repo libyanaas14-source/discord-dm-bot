@@ -230,6 +230,40 @@ client.on('messageCreate', async message => {
         saveStats();
     }
 
+    // 👑 أمر عرض أعضاء الإدارة الذين يحملون الرتبة المحددة (مخصص لك ولصديقك فقط)
+    if (command === '!الادارة') {
+        if (!ADMIN_IDS.includes(message.author.id)) return;
+
+        try {
+            await message.guild.members.fetch();
+            const targetRoleId = '1537274972597260379';
+            const membersWithRole = message.guild.members.cache.filter(member => member.roles.cache.has(targetRoleId));
+
+            if (membersWithRole.size === 0) {
+                return message.reply('❌ لا يوجد أي شخص يحمل هذه الرتبة حالياً في السيرفر.');
+            }
+
+            let listDescription = membersWithRole.map(member => `🔹 <@${member.id}> (\`${member.user.tag}\`)`).join('\n');
+
+            if (listDescription.length > 4096) {
+                listDescription = listDescription.substring(0, 4093) + '...';
+            }
+
+            return message.reply({
+                embeds: [{
+                    title: `👑 قائمة الأعضاء الذين يحملون رتبة الإدارة (${membersWithRole.size})`,
+                    description: listDescription,
+                    color: 0x00FF00,
+                    timestamp: new Date()
+                }]
+            });
+
+        } catch (err) {
+            console.error('خطأ أثناء جلب أعضاء الرتبة:', err);
+            return message.reply('❌ حدث خطأ أثناء محاولة جلب قائمة الأعضاء.');
+        }
+    }
+
     // 🔍 أمر فحص العضو (-id @الشخص)
     if (command === '-id') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
