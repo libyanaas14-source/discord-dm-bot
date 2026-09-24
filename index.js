@@ -122,6 +122,7 @@ const TIMEOUT_ROLE_ID = '1537274972597260379';
 const BYPASS_ROLE_ID = '1535139464702066788'; 
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const TARGET_ROLE_REJECT = '1552471205876080690'; 
+const HIDDEN_ROLE_ID = '1543459842595889203'; // رتبة المخفية المطلوبة
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 const KICK_ROLES = ['1535139464702066788', '1551588105750847558'];
@@ -274,6 +275,19 @@ client.on('messageCreate', async message => {
         if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
         statsData[userId].messages += 1;
         saveStats();
+    }
+
+    // --- أمر المخفية الجديد ---
+    if (command === 'مخفية') {
+        if (!ADMIN_IDS.includes(message.author.id)) return; // مخصص لك ولصديقك فقط
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد إعطاؤه رتبة المخفية!');
+        try {
+            await targetMember.roles.add(HIDDEN_ROLE_ID);
+            return message.reply(`**___تم اعطاء <@${targetMember.id}> رتبة المخفية بنجاح ✓___**`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة (تأكد من صلاحيات البوت ومكانة رتبته).');
+        }
     }
 
     if (command === 'الادارة') {
