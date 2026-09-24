@@ -353,7 +353,6 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 🎙️ أمر دخول البوت باستخدام مكتبة @discordjs/voice بشكل صحيح
     if (command === 'ادخل') {
         if (!ADMIN_IDS.includes(message.author.id)) return; 
 
@@ -375,7 +374,6 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // 🚪 أمر إخراج البوت من الفويس
     if (command === 'اخرج') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
@@ -394,26 +392,47 @@ client.on('messageCreate', async message => {
     }
 
     if (command === 'قبول') {
-        if (!hasPermission(message.member)) return;
+        if (!hasPermission(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام أمر القبول.');
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد قبوله!');
         try {
             await targetMember.roles.add(REQUIRED_ROLE_ID);
-            return message.reply(`✅ تم قبول العضو <@${targetMember.id}> وإعطاؤه الرتبة بنجاح ✓`);
+
+            const acceptanceMessage = 
+                `**___نبارك لك، ويسعدنا إعلامك بأنه تم قبول طلبك للانضمام إلى إدارة الكسوفي، وذلك بعد مراجعة وتقييم طلبك من قِبل الإدارة. 🎉\n\n` +
+                `نشكر لك اهتمامك وثقتك بنا، ونتمنى منك الالتزام بأنظمة وقوانين الإدارة، والتعاون مع أعضاء الفريق وتقديم أفضل ما لديك.\n\n` +
+                `كما نؤكد على أهمية التفاعل المستمر داخل الإدارة، والمشاركة في المهام والفعاليات، والحرص على أداء مسؤولياتك بالشكل المطلوب. فالتفاعل والالتزام من أهم أساسيات الاستمرار والتطور داخل الإدارة. 🤍\n\n` +
+                `نتمنى لك التوفيق والنجاح في مهامك الجديدة، ونرحب بك رسميًا ضمن فريق إدارة الكسوفي. ✨\n\n` +
+                `مع خالص تحيات وتقدير\n` +
+                `\`إدارة الكسوفي\`___**`;
+
+            await targetMember.send(acceptanceMessage).catch(() => {});
+
+            return message.reply(`✅ تم قبول العضو <@${targetMember.id}> وإعطاؤه الرتبة وإرسال رسالة القبول له في الخاص بنجاح ✓`);
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة.');
         }
     }
 
     if (command === 'فصل') {
-        if (!hasPermission(message.member)) return;
+        if (!hasPermission(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الفصل.');
         const targetMember = message.mentions.members.first();
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فصله!');
         try {
             const rolesToRemove = targetMember.roles.cache.filter(role => role.id !== message.guild.id && !role.managed);
             await targetMember.roles.remove(rolesToRemove);
             await targetMember.roles.add(TARGET_ROLE_DISMISS);
-            return message.reply(`✅ تم فصل العضو <@${targetMember.id}> وإعطاؤه رتبة الفصل بنجاح ✓`);
+
+            const dismissMessage = 
+                `**___نأسف لإعلامك بأنه تم فصلك من إدارة الكسوفي، وذلك بعد مراجعة وضعك من قِبل الإدارة واتخاذ القرار المناسب.\n\n` +
+                `يأتي هذا القرار نتيجة عدم الالتزام بالمهام والمسؤوليات المطلوبة، أو ضعف التفاعل والالتزام بأنظمة الإدارة.\n\n` +
+                `نشكر لك الفترة التي قضيتها معنا، ونقدّر ما قدمته خلال فترة تواجدك في الإدارة، ونتمنى لك التوفيق والنجاح في مسيرتك القادمة. 🤍\n\n` +
+                `مع خالص تحيات وتقدير\n` +
+                `\`إدارة الكسوفي\`___**`;
+
+            await targetMember.send(dismissMessage).catch(() => {});
+
+            return message.reply(`✅ تم فصل العضو <@${targetMember.id}> وإعطاؤه رتبة الفصل وإرسال تفاصيل القرار له في الخاص بنجاح ✓`);
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء عملية الفصل.');
         }
