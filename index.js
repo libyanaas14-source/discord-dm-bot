@@ -121,6 +121,7 @@ const WARNINGS_ROLE_ID = '1543459842595889203';
 const TIMEOUT_ROLE_ID = '1537274972597260379';  
 const BYPASS_ROLE_ID = '1535139464702066788'; 
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
+const TARGET_ROLE_REJECT = '1552471205876080690'; 
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 const KICK_ROLES = ['1535139464702066788', '1551588105750847558'];
@@ -408,9 +409,31 @@ client.on('messageCreate', async message => {
 
             await targetMember.send(acceptanceMessage).catch(() => {});
 
-            return message.reply(`✅ تم قبول العضو <@${targetMember.id}> وإعطاؤه الرتبة وإرسال رسالة القبول له في الخاص بنجاح ✓`);
+            return message.reply(`**___تم قبول العضو <@${targetMember.id}> و إنضمامه في ادارة الكسوفي بنجاح✓___**`);
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة.');
+        }
+    }
+
+    if (command === 'رفض') {
+        if (!hasPermission(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الرفض.');
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد رفضه!');
+        try {
+            await targetMember.roles.add(TARGET_ROLE_REJECT);
+
+            const rejectionMessage = 
+                `**___نأسف لإعلامك بأنه تم رفض طلبك للانضمام إلى إدارة الكسوفي، وذلك بعد مراجعة وتقييم طلبك من قِبل الإدارة.\n\n` +
+                `نشكر لك اهتمامك ورغبتك في الانضمام إلى فريق إدارة الكسوفي، ونقدّر وقتك وجهدك المبذول في التقديم.\n\n` +
+                `نتمنى لك دوام التوفيق والنجاح، ونأمل أن تتاح لك فرصة أخرى للانضمام إلينا في المستقبل. 🤍\n\n` +
+                `مع خالص تحيات وتقدير\n` +
+                `\`إدارة الكسوفي\`___**`;
+
+            await targetMember.send(rejectionMessage).catch(() => {});
+
+            return message.reply(`**___تم رفض <@${targetMember.id}> تقديمك في ادارة الكسوفي ب نجاح✓___**`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء عملية الرفض.');
         }
     }
 
@@ -432,7 +455,7 @@ client.on('messageCreate', async message => {
 
             await targetMember.send(dismissMessage).catch(() => {});
 
-            return message.reply(`✅ تم فصل العضو <@${targetMember.id}> وإعطاؤه رتبة الفصل وإرسال تفاصيل القرار له في الخاص بنجاح ✓`);
+            return message.reply(`**___تم فصلك <@${targetMember.id}> من ادارة الكسوفي وذالك بعد مراجعة وضعك من قبل الادارة العليا واتخاذ القرار المناسب ✓___**`);
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء عملية الفصل.');
         }
