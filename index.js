@@ -223,6 +223,7 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
+    const fullMessage = message.content.trim().toLowerCase();
     const args = message.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const userId = message.author.id;
@@ -234,6 +235,37 @@ client.on('messageCreate', async message => {
         wData.claims += 1;
     }
     saveWeeklyStats();
+
+    // --- أمر day (يتطلب رتبة الإدارة المطلوبة أو الآدمن) ---
+    if (command === 'day') {
+        if (!ADMIN_IDS.includes(message.author.id) && !message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
+            return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        }
+
+        const sortedStats = Object.entries(statsData)
+            .sort((a, b) => b[1].messages - a[1].messages)
+            .slice(0, 10);
+
+        if (sortedStats.length === 0) {
+            return message.reply('📊 لا توجد تفاعلات مسجلة لهذا اليوم حتى الآن.');
+        }
+
+        let desc = '';
+        sortedStats.forEach(([uId, data], index) => {
+            let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🔹';
+            let voiceHours = (data.voiceMinutes / 60).toFixed(1);
+            desc += `${medal} **#${index + 1}** \vert{} <@${uId}> — رسائل: \`${data.messages}\` | فويس: \`${voiceHours}h\`\n`;
+        });
+
+        return message.reply({
+            embeds: [{
+                title: '📊 توب التفاعل اليومي (أعضاء الإدارة)',
+                description: desc,
+                color: 0x00FF00,
+                timestamp: new Date()
+            }]
+        });
+    }
 
     if (command === 'تفعيل') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
