@@ -317,12 +317,12 @@ client.on('messageCreate', async message => {
                 if (member.user.bot) continue; // تخطي البوتات
 
                 try {
-                    await member.send(`رسالة من إدارة السيرفر:\n\n${broadcastMessage}\n\nإلى: <@${member.id}>`);
+                    // إرسال النص مباشرة مع المنشن بالأسفل
+                    await member.send(`${broadcastMessage}\n\n<@${member.id}>`);
                     successCount++;
-                    // انتظار 1.5 ثانية بين كل رسالة والثانية لمنع حماية ديسكورد من حظر البوت
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 } catch (err) {
-                    failCount++; // في حال كان العضو قافل الخاص عنده
+                    failCount++; 
                 }
             }
 
