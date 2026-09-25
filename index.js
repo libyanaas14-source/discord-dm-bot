@@ -295,12 +295,42 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // --- أمر all (الشامل / العام) ---
+    // --- أمر all (الإذاعة للخاص لجميع الأعضاء) ---
     if (command === 'all' || command === 'الكل') {
         if (!hasPermission(message.member) && !ADMIN_IDS.includes(userId)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         }
-        return message.reply('✅ أهلاً بك، أمر `all` يعمل بشكل سليم ومتصل بالنظام بنجاح!');
+
+        const broadcastMessage = args.slice(1).join(' ');
+        if (!broadcastMessage) {
+            return message.reply('❌ يرجى كتابة الرسالة المراد إرسالها بعد الأمر! (مثال: `all السلام عليكم`)');
+        }
+
+        await message.reply('⏳ جاري إرسال الرسالة في الخاص لجميع أعضاء السيرفر...');
+
+        try {
+            await message.guild.members.fetch();
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const [memberId, member] of message.guild.members.cache) {
+                if (member.user.bot) continue; // تخطي البوتات
+
+                try {
+                    await member.send(`رسالة من إدارة السيرفر:\n\n${broadcastMessage}\n\nإلى: <@${member.id}>`);
+                    successCount++;
+                    // انتظار 1.5 ثانية بين كل رسالة والثانية لمنع حماية ديسكورد من حظر البوت
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                } catch (err) {
+                    failCount++; // في حال كان العضو قافل الخاص عنده
+                }
+            }
+
+            return message.channel.send(`✅ تم الانتهاء من الإذاعة!\n- تم الإرسال بنجاح: **${successCount}**\n- فشل الإرسال (قفل الخاص): **${failCount}**`);
+        } catch (err) {
+            console.error(err);
+            return message.reply('❌ حدث خطأ أثناء جلب الأعضاء أو إرسال الرسائل.');
+        }
     }
 });
 
