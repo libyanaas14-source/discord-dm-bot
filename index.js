@@ -168,6 +168,7 @@ client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 });
 
+// نظام تتبع الصوت والإحصائيات
 client.on('voiceStateUpdate', (oldState, newState) => {
     const userId = newState.member?.id || oldState.member?.id;
     if (!userId) return;
@@ -192,6 +193,7 @@ client.on('messageCreate', async message => {
     userWeekly.messages += 1;
     saveWeeklyStats();
 
+    // حماية الصور
     if (autoImageChannels.includes(message.channel.id)) {
         if (!message.attachments.size && !message.content.includes('http')) {
             if (!ADMIN_IDS.includes(message.author.id) && !hasPermission(message.member)) {
@@ -211,7 +213,7 @@ client.on('messageCreate', async message => {
     const command = args[0].toLowerCase();
     const userId = message.author.id;
 
-    // --- أوامر الصوت ---
+    // --- أوامر الصوت (ادخل / اخرج) ---
     if (command === 'ادخل') {
         const channel = message.member?.voice.channel;
         if (!channel) {
@@ -374,7 +376,7 @@ client.on('messageCreate', async message => {
     }
 
     // --- الطرد ---
-    if (command === 'برا' || command === 'kick') {
+    if (command === 'طرد' || command === 'kick') {
         if (!canKick(message.member)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الطرد.');
         }
