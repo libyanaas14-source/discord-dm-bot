@@ -299,7 +299,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // --- أمر الترقية ---
+    // --- أمر الترقية المعدل ---
     if (command === 'ترقيه' || command === 'ترقية') {
         if (!canPromoteOrDemote(message.member)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الترقية.');
@@ -323,14 +323,15 @@ client.on('messageCreate', async message => {
             }
         }
 
-        if (currentRoleIndex === -1) {
-            return message.reply(`❌ الشخص المستهدف لا يملك أي رتبة أساسية من رتب الإدارة المحددة في النظام.`);
-        }
-
-        let targetIndex = currentRoleIndex + steps;
+        let targetIndex;
         const maxLimitRoleIndex = PROMOTION_ROLES_HIERARCHY.length - 1;
 
-        // قيد الرتبة الثانية (1543460225208549416): لا تساوى نفسها ولا تتعدى الرتبة النهائية (1537277782487203940)
+        if (currentRoleIndex === -1) {
+            targetIndex = steps - 1; // إذا لم يكن لديه رتبة، تبدأ الترقية من أول رتبة
+        } else {
+            targetIndex = currentRoleIndex + steps;
+        }
+
         if (message.member.roles.cache.has(SPECIAL_GIVER_ROLE_2) && !ADMIN_IDS.includes(message.author.id)) {
             const myRoleIndex = PROMOTION_ROLES_HIERARCHY.indexOf(SPECIAL_GIVER_ROLE_2);
             if (targetIndex >= myRoleIndex) {
@@ -345,25 +346,35 @@ client.on('messageCreate', async message => {
             targetIndex = maxLimitRoleIndex;
         }
 
-        if (targetIndex === currentRoleIndex) {
-            return message.reply('❌ لم يتم إجراء أي ترقية جديدة بناءً على الشروط المتاحة.');
+        if (targetIndex < 0) {
+            targetIndex = 0;
         }
 
         const newRoleId = PROMOTION_ROLES_HIERARCHY[targetIndex];
         const newRoleObj = message.guild.roles.cache.get(newRoleId);
 
+        if (!newRoleObj) {
+            return message.reply('❌ حدث خطأ في تحديد الرتبة المقصودة، تأكد من أيدي الرتب في الكود.');
+        }
+
         try {
-            await targetMember.roles.remove(currentRoleObj);
+            if (currentRoleObj) {
+                await targetMember.roles.remove(currentRoleObj);
+            }
             await targetMember.roles.add(newRoleObj);
 
-            return message.reply(`تم ترقية <@${targetMember.id}> من رتبة ${currentRoleObj.name} الى رتبة ${newRoleObj.name} ب نجاح✓`);
+            if (currentRoleObj) {
+                return message.reply(`تم ترقية <@${targetMember.id}> من رتبة ${currentRoleObj.name} الى رتبة ${newRoleObj.name} ب نجاح✓`);
+            } else {
+                return message.reply(`تم منح <@${targetMember.id}> رتبة ${newRoleObj.name} ب نجاح✓`);
+            }
         } catch (err) {
             console.error('خطأ في الترقية:', err);
             return message.reply('❌ حدث خطأ أثناء تنفيذ الترقية (تأكد من أن رتبة البوت أعلى من الرتب المراد تعديلها).');
         }
     }
 
-    // --- أمر التخفيض ---
+    // --- أمر التخفيض المعدل ---
     if (command === 'تخفيض') {
         if (!canPromoteOrDemote(message.member)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام أمر التخفيض.');
@@ -388,7 +399,7 @@ client.on('messageCreate', async message => {
         }
 
         if (currentRoleIndex === -1) {
-            return message.reply(`❌ الشخص المستهدف لا يملك أي رتبة قابلة للتخفيض.`);
+            return message.reply(`❌ العضو المستهدف لا يملك أي رتبة من رتب التسلسل لكي يتم تخفيضه.`);
         }
 
         let targetIndex = currentRoleIndex - steps;
