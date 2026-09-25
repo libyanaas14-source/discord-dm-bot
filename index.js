@@ -299,7 +299,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // --- أمر الترقية المضبط بدقة ---
+    // --- أمر الترقية المضبط بدقة نهائية ---
     if (command === 'ترقيه' || command === 'ترقية') {
         if (!canPromoteOrDemote(message.member)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الترقية.');
@@ -321,7 +321,7 @@ client.on('messageCreate', async message => {
 
         let targetIndex;
         if (currentRoleIndex === -1) {
-            targetIndex = steps - 1; 
+            targetIndex = 0; // إذا لم يملك أي رتبة، يبدأ حصرياً من الرتبة الأولى في التسلسل (الفهرس 0)
         } else {
             targetIndex = currentRoleIndex + steps; 
         }
@@ -335,7 +335,7 @@ client.on('messageCreate', async message => {
 
         const maxLimitRoleIndex = PROMOTION_ROLES_HIERARCHY.length - 1;
         if (targetIndex > maxLimitRoleIndex) {
-            targetIndex = maxLimitRoleIndex;
+            return message.reply(`⚠️ العضو <@${targetMember.id}> وصل إلى **أقصى رتبة** في تسلسل الترقيات ولا يمكن ترقيته أكثر!`);
         }
         if (targetIndex < 0) {
             targetIndex = 0;
