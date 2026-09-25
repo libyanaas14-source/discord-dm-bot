@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const express = require('express');
 const fs = require('fs');
@@ -20,6 +20,7 @@ const PERMS_BACKUP_FILE = './perms_backup.json';
 const AUTO_CHANNELS_FILE = './auto_channels.json';
 const WEEKLY_STATS_FILE = './weekly_stats.json';
 const WARNINGS_FILE = './warnings.json';
+const TICKETS_FILE = './tickets.json';
 
 let coinsData = {};
 let statsData = {}; 
@@ -28,6 +29,7 @@ let channelPermsBackup = {};
 let autoImageChannels = [];
 let weeklyStats = {}; 
 let warningsData = {};
+let ticketsData = {};
 
 if (fs.existsSync(DATA_FILE)) {
     try { coinsData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { coinsData = {}; }
@@ -53,6 +55,10 @@ if (fs.existsSync(WARNINGS_FILE)) {
     try { warningsData = JSON.parse(fs.readFileSync(WARNINGS_FILE, 'utf8')); } catch (e) { warningsData = {}; }
 }
 
+if (fs.existsSync(TICKETS_FILE)) {
+    try { ticketsData = JSON.parse(fs.readFileSync(TICKETS_FILE, 'utf8')); } catch (e) { ticketsData = {}; }
+}
+
 function saveCoins() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(coinsData, null, 2));
 }
@@ -75,6 +81,10 @@ function saveWeeklyStats() {
 
 function saveWarnings() {
     fs.writeFileSync(WARNINGS_FILE, JSON.stringify(warningsData, null, 2));
+}
+
+function saveTickets() {
+    fs.writeFileSync(TICKETS_FILE, JSON.stringify(ticketsData, null, 2));
 }
 
 function getCoins(userId) {
@@ -123,7 +133,7 @@ const BYPASS_ROLE_ID = '1535139464702066788';
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const TARGET_ROLE_REJECT = '1552471205876080690'; 
 const HIDDEN_ROLE_ID = '1543459842595889203'; 
-const PROMOTION_AUTH_ROLE_ID = '1543460225208549416'; // رتبة الإذن لأمر ترقية
+const PROMOTION_AUTH_ROLE_ID = '1543460225208549416'; 
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 const KICK_ROLES = ['1535139464702066788', '1551588105750847558'];
@@ -136,7 +146,12 @@ const AUTHORIZED_ROLES = [
     '1551588105750847558'
 ];
 
-// مصفوفة رتب الترقيات مرتبة تصاعدياً من الأضعف للأقوى بناءً على الأيديوهات التي أرسلتها
+const DEMOTE_AUTH_ROLES = [
+    '1551588405836648571',
+    '1551588472412966942',
+    '1543460225208549416'
+];
+
 const PROMOTION_ROLES_CHAIN = [
     '1537274242909868085', '1537274972597260379', '1537275238885359636', '1537275451209158656',
     '1537275663503855696', '1537276083907465337', '1537276300404985896', '1537276853658718229',
@@ -187,77 +202,129 @@ function canKick(member) {
     if (ADMIN_IDS.includes(member.id)) return true;
     return member.roles.cache.some(role => KICK_ROLES.includes(role.id));
 }
-
 client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
+});
 
-    setInterval(() => {
-        const now = new Date();
-        const libyaHours = (now.getUTCHours() + 2) % 24;
-        const libyaMinutes = now.getUTCMinutes();
+// نظام تتبع الصوت والإحصائيات الأسبوعية الكامل
+client.on('voiceStateUpdate', (oldState, newState) => {
+    const userId = newState.member?.id || oldState.member?.id;
+    if (!userId) return;
 
-        if (libyaHours === 2 && libyaMinutes === 0) {
-            statsData = {};
-            saveStats();
-            console.log('🔄 تم تصفير إحصائيات التفاعل اليومية بنجاح.');
-        }
-    }, 60000); 
-
-    setInterval(() => {
-        const now = new Date();
-        const libyaDay = (now.getUTCDay() + (now.getUTCHours() + 2 >= 24 ? 1 : 0)) % 7;
-        const libyaHours = (now.getUTCHours() + 2) % 24;
-        const libyaMinutes = now.getUTCMinutes();
-
-        if (libyaDay === 6 && libyaHours === 0 && libyaMinutes === 0) {
-            weeklyStats = {};
+    if (!oldState.channelId && newState.channelId) {
+        voiceTracker[userId] = Date.now();
+    } else if (oldState.channelId && !newState.channelId) {
+        if (voiceTracker[userId]) {
+            const minutes = Math.floor((Date.now() - voiceTracker[userId]) / 60000);
+            const userWeekly = getWeeklyData(userId);
+            userWeekly.voiceMinutes += minutes;
             saveWeeklyStats();
-            console.log('🔄 تم تصفير إحصائيات الأسبوع تلقائياً بنجاح.');
+            delete voiceTracker[userId];
         }
-    }, 60000);
-
-    setInterval(() => {
-        const now = Date.now();
-        for (const [userId, startTime] of Object.entries(voiceTracker)) {
-            const guild = client.guilds.cache.first();
-            if (guild) {
-                const member = guild.members.cache.get(userId);
-                if (member && member.voice.channel && member.roles.cache.has(REQUIRED_ROLE_ID)) {
-                    const diffMinutes = Math.floor((now - startTime) / 60000);
-                    if (diffMinutes >= 1) {
-                        if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
-                        statsData[userId].voiceMinutes += diffMinutes;
-                        const wData = getWeeklyData(userId);
-                        wData.voiceMinutes += diffMinutes;
-                        voiceTracker[userId] = now;
-                        saveStats();
-                        saveWeeklyStats();
-                    }
-                } else {
-                    delete voiceTracker[userId];
-                }
-            }
-        }
-    }, 60000);
+    }
 });
 
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
+
+    // احتساب الرسائل للإحصائيات الأسبوعية
+    const userWeekly = getWeeklyData(message.author.id);
+    userWeekly.messages += 1;
+    saveWeeklyStats();
+
+    // نظام حماية الصور في القنوات المحددة (Auto Image Channels)
+    if (autoImageChannels.includes(message.channel.id)) {
+        if (!message.attachments.size && !message.content.includes('http')) {
+            if (!ADMIN_IDS.includes(message.author.id) && !hasPermission(message.member)) {
+                try {
+                    await message.delete();
+                    const warningMsg = await message.channel.send(`⚠️ <@${message.author.id}> هذه القناة مخصصة للصور فقط!`);
+                    setTimeout(() => warningMsg.delete().catch(() => {}), 4000);
+                    return;
+                } catch (err) {
+                    console.error('Failed to delete message in image-only channel:', err);
+                }
+            }
+        }
+    }
 
     const args = message.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1] ? args[1].toLowerCase() : '';
     const userId = message.author.id;
 
-    const wData = getWeeklyData(userId);
-    wData.messages += 1;
-
-    if (message.content.includes('استلام')) {
-        wData.claims += 1;
+    // --- نظام النقاط (Coins) والألعاب البسيطة ---
+    if (command === 'رصيدي' || command === 'فلوس') {
+        const coins = getCoins(userId);
+        return message.reply(`💰 رصيدك الحالي هو: **${coins}** عملة.`);
     }
-    saveWeeklyStats();
 
-    // --- أمر ترقيه الجديد ---
+    if (command === 'تحويل') {
+        const targetMember = message.mentions.members.first();
+        const amount = parseInt(args[2]);
+        if (!targetMember || isNaN(amount) || amount <= 0) {
+            return message.reply('❌ الاستخدام الصحيح: `تحويل @الشخص المبلغ`');
+        }
+        if (targetMember.id === userId) {
+            return message.reply('❌ لا يمكنك التحويل لنفسك!');
+        }
+        const senderCoins = getCoins(userId);
+        if (senderCoins < amount) {
+            return message.reply('❌ ليس لديك رصيد كافٍ لإتمام هذه العملية.');
+        }
+        removeCoins(userId, amount);
+        addCoins(targetMember.id, amount);
+        return message.reply(`✅ تم تحويل **${amount}** عملة بنجاح إلى <@${targetMember.id}>.`);
+    }
+
+    // --- نظام التحذيرات (Warnings) ---
+    if (command === 'تحذير') {
+        if (!canManageWarnings(message.member)) {
+            return message.reply('❌ ليس لديك صلاحية لإدارة التحذيرات.');
+        }
+        const targetMember = message.mentions.members.first();
+        const reason = args.slice(2).join(' ') || 'بدون سبب';
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن الشخص المراد تحذيره.');
+        }
+        const userWarns = getWarnings(targetMember.id);
+        userWarns.push({ reason, moderator: message.author.tag, date: new Date().toLocaleDateString() });
+        saveWarnings();
+        return message.reply(`⚠️ تم تحذير العضو <@${targetMember.id}> بنجاح. عدد تحذيراته الان: **${userWarns.length}**`);
+    }
+
+    if (command === 'تحذيرات') {
+        const targetMember = message.mentions.members.first() || message.member;
+        const userWarns = getWarnings(targetMember.id);
+        if (userWarns.length === 0) {
+            return message.reply(`ℹ️ العضو <@${targetMember.id}> ليس لديه أي تحذيرات.`);
+        }
+        let desc = userWarns.map((w, index) => `**${index + 1}.** السبب: ${w.reason} (بواسطة: ${w.moderator})`).join('\n');
+        const embed = new EmbedBuilder()
+            .setTitle(`سجل تحذيرات العضو: ${targetMember.user.tag}`)
+            .setDescription(desc)
+            .setColor('#ff0000');
+        return message.reply({ embeds: [embed] });
+    }
+
+    // --- أوامر الحماية والطرد والإدارة ---
+    if (command === 'طرد' || command === 'kick') {
+        if (!canKick(message.member)) {
+            return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الطرد.');
+        }
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن الشخص المراد طرده.');
+        }
+        try {
+            await targetMember.kick();
+            return message.reply(`✅ تم طرد العضو <@${targetMember.id}> بنجاح.`);
+        } catch (e) {
+            return message.reply('❌ لا يمكنني طرد هذا العضو، ربما رتبته أعلى من رتبتي.');
+        }
+    }
+
+    // --- أمر ترقيه (بالشكل الجديد المطلوب) ---
     if (command === 'ترقيه') {
         const isOwnerOrAdmin = ADMIN_IDS.includes(message.author.id);
         const hasAuthRole = message.member.roles.cache.has(PROMOTION_AUTH_ROLE_ID);
@@ -277,7 +344,6 @@ client.on('messageCreate', async message => {
             return message.reply('❌ يرجى تحديد عدد ترقيات صحيح بين 1 و 10! (مثال: `ترقيه @الشخص 2`)');
         }
 
-        // فحص أعلى رتبة يمتلكها الشخص المرقي من القائمة المتاحة
         let currentHighestIndex = -1;
         for (let i = 0; i < PROMOTION_ROLES_CHAIN.length; i++) {
             if (targetMember.roles.cache.has(PROMOTION_ROLES_CHAIN[i])) {
@@ -285,7 +351,6 @@ client.on('messageCreate', async message => {
             }
         }
 
-        // تحديد رتبة المنفذ إذا لم يكن أدمن
         if (!isOwnerOrAdmin) {
             let authorHighestIndex = -1;
             for (let i = 0; i < PROMOTION_ROLES_CHAIN.length; i++) {
@@ -308,403 +373,77 @@ client.on('messageCreate', async message => {
         const rolesToAdd = PROMOTION_ROLES_CHAIN.slice(startIndex, endIndex);
 
         try {
-            // جلب اسم أقدم رتبة يمتلكها العضو حالياً أو "بدون رتبة"
-            let oldRoleName = currentHighestIndex !== -1 ? `<@&${PROMOTION_ROLES_CHAIN[currentHighestIndex]}>` : 'بدون رتبة سابقة';
-            
-            // إضافة الرتب الجديدة بدون سحب القديمة
+            let oldRoleName = currentHighestIndex !== -1 ? `<@&${PROMOTION_ROLES_CHAIN[currentHighestIndex]}>` : 'بدون رتبة';
             await targetMember.roles.add(rolesToAdd);
-
-            // جلب أسماء الرتب الجديدة الممنوحة لعرضها في الرسالة
             let newRolesNames = rolesToAdd.map(rId => `<@&${rId}>`).join(', ');
 
-            return message.reply(`تمت ترقية هذا الشخص من رتبته ${oldRoleName} الى رتبته الجديدة ${newRolesNames} ✓`);
+            return message.reply(
+                `**___تم ترقية <@${targetMember.id}>\n\n` +
+                `من رتبة ${oldRoleName}\n\n` +
+                `الى رتبة ${newRolesNames}\n\n` +
+                `بنجاح✓___**`
+            );
         } catch (err) {
             console.error(err);
             return message.reply('❌ حدث خطأ أثناء محاولة منح الرتب للعضو.');
         }
     }
 
-    // --- أمر top day ---
-    if (command === 'top' && subCommand === 'day') {
-        if (!ADMIN_IDS.includes(message.author.id) && !message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
-            return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+    // --- أمر تخفيض (بالشكل الجديد المطلوب) ---
+    if (command === 'تخفيض') {
+        const isOwnerOrAdmin = ADMIN_IDS.includes(message.author.id);
+        const hasDemoteAuth = message.member.roles.cache.some(r => DEMOTE_AUTH_ROLES.includes(r.id));
+
+        if (!isOwnerOrAdmin && !hasDemoteAuth) {
+            return message.reply('❌ ليس لديك صلاحية لاستخدام أمر التخفيض.');
         }
 
-        if (Object.keys(statsData).length === 0) {
-            return message.reply('📊 لا توجد تفاعلات مسجلة لهذا اليوم حتى الآن.');
-        }
-
-        const topMessages = Object.entries(statsData)
-            .sort((a, b) => b[1].messages - a[1].messages)
-            .slice(0, 5);
-
-        const topVoice = Object.entries(statsData)
-            .sort((a, b) => b[1].voiceMinutes - a[1].voiceMinutes)
-            .slice(0, 5);
-
-        let medals = ['🔹 #1', '🔹 #2', '🔹 #3', '🔹 #4', '🔹 #5'];
-
-        let msgDesc = '';
-        topMessages.forEach(([uId, data], index) => {
-            msgDesc += `${medals[index]} | <@${uId}> —${data.messages} رسالة\n`;
-        });
-
-        let voiceDesc = '';
-        topVoice.forEach(([uId, data], index) => {
-            voiceDesc += `${medals[index]} | <@${uId}> —${data.voiceMinutes} دقيقة\n`;
-        });
-
-        return message.reply({
-            embeds: [{
-                title: '📊 توب التفاعل اليومي',
-                description: `💬 **أكثر 5 تفاعلاً بالرسائل:**\n${msgDesc}\n🎙️ **أكثر 5 تواجدأ بالفويس:**\n${voiceDesc}\n> يتم التصفير يومياً الساعة 2:00 ليلاً بتوقيت ليبيا`,
-                color: 0x00FF00,
-                timestamp: new Date()
-            }]
-        });
-    }
-
-    if (command === 'تفعيل') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        if (autoImageChannels.includes(message.channel.id)) {
-            return message.reply('⚠️ الخط التلقائي مفعل مسبقاً في هذا الروم!');
-        }
-        autoImageChannels.push(message.channel.id);
-        saveAutoChannels();
-        return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)!`);
-    }
-
-    if (command === 'إلغاء') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        const index = autoImageChannels.indexOf(message.channel.id);
-        if (index === -1) {
-            return message.reply('⚠️ الخط التلقائي غير مفعل أصلاً في هذا الروم!');
-        }
-        autoImageChannels.splice(index, 1);
-        saveAutoChannels();
-        return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
-    }
-
-    if (autoImageChannels.includes(message.channel.id)) {
-        try {
-            await message.channel.send({ files: [TARGET_IMAGE_URL] });
-        } catch (err) {
-            console.error('خطأ أثناء إرسال الصورة التلقائية:', err);
-        }
-    }
-
-    if (message.member && message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
-        if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
-        statsData[userId].messages += 1;
-        saveStats();
-    }
-
-    if (command === 'مخفية') {
-        if (!ADMIN_IDS.includes(message.author.id)) return; 
         const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد إعطاؤه رتبة المخفية!');
-        try {
-            await targetMember.roles.add(HIDDEN_ROLE_ID);
-            return message.reply(`**___تم اعطاء <@${targetMember.id}> رتبة المخفية بنجاح ✓___**`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة.');
+        const countArg = parseInt(args[2]);
+
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن الشخص المراد تخفيضه! (مثال: `تخفيض @الشخص 2`)');
         }
-    }
 
-    if (command === 'الادارة') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        try {
-            await message.guild.members.fetch();
-            const targetRoleId = '1537274972597260379';
-            const membersWithRole = message.guild.members.cache.filter(member => member.roles.cache.has(targetRoleId));
+        if (!countArg || isNaN(countArg) || countArg <= 0 || countArg > 10) {
+            return message.reply('❌ يرجى تحديد عدد صحيح بين 1 و 10 للرتب المراد إزالتها!');
+        }
 
-            if (membersWithRole.size === 0) {
-                return message.reply('❌ لا يوجد أي شخص يحمل هذه الرتبة حالياً في السيرفر.');
+        let currentHighestIndex = -1;
+        for (let i = 0; i < PROMOTION_ROLES_CHAIN.length; i++) {
+            if (targetMember.roles.cache.has(PROMOTION_ROLES_CHAIN[i])) {
+                currentHighestIndex = i;
             }
-
-            let listDescription = membersWithRole.map(member => `🔹 <@${member.id}> (\`${member.user.tag}\`)`).join('\n');
-            if (listDescription.length > 4096) listDescription = listDescription.substring(0, 4093) + '...';
-
-            return message.reply({
-                embeds: [{
-                    title: `👑 قائمة الأعضاء (${membersWithRole.size})`,
-                    description: listDescription,
-                    color: 0x00FF00,
-                    timestamp: new Date()
-                }]
-            });
-        } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء محاولة جلب قائمة الأعضاء.');
         }
-    }
 
-    if (command === 'id') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فحصه!');
-        
-        if (!targetMember.roles.cache.has(ID_COMMAND_TARGET_ROLE)) return;
+        if (currentHighestIndex === -1) {
+            return message.reply('❌ هذا العضو ليس لديه أي رتبة ضمن سلسلة رتب الترقية والتخفيض!');
+        }
 
-        const targetId = targetMember.id;
-        const targetWeekly = getWeeklyData(targetId);
-        const hoursInVoice = (targetWeekly.voiceMinutes / 60).toFixed(1);
-
-        return message.reply(
-            `**فحص العضو <@${targetId}>**\n\n` +
-            `عدد الرسائل: \`${targetWeekly.messages}\`\n\n` +
-            `الوقت داخل الفويس: \`${hoursInVoice}h\`\n\n` +
-            `عدد التكتات الذي استلمها: \`${targetWeekly.claims}\``
-        );
-    }
-
-    if (command === 'نك') {
-        if (!canManageNickname(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
-        const targetMember = message.mentions.members.first();
-        const newNickname = args.slice(2).join(' ');
-
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
+        const removeStartIndex = Math.max(0, currentHighestIndex - countArg + 1);
+        const rolesToRemove = PROMOTION_ROLES_CHAIN.slice(removeStartIndex, currentHighestIndex + 1);
 
         try {
-            if (!newNickname) {
-                await targetMember.setNickname(null);
-                return message.reply(`✅ تم إرجاع اسم العضو <@${targetMember.id}> إلى وضعه الأساسي بنجاح ✓`);
-            } else {
-                await targetMember.setNickname(newNickname);
-                return message.reply(`✅ تم تغيير لقب العضو <@${targetMember.id}> بنجاح إلى: **${newNickname}** ✓`);
-            }
-        } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء تعديل اللقب.');
-        }
-    }
-
-    if (command === 'ادخل') {
-        if (!ADMIN_IDS.includes(message.author.id)) return; 
-        if (!message.member.voice.channel) return message.reply('❌ يجب أن تكون في روم صوتي أولاً!');
-        try {
-            const voiceChannel = message.member.voice.channel;
-            joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: voiceChannel.guild.id,
-                adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-            });
-            return message.reply(`✅ تم دخول البوت إلى الروم بنجاح ✓`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'اخرج') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        try {
-            const connection = getVoiceConnection(message.guild.id);
-            if (!connection) return message.reply('❌ البوت ليس في أي روم أصلاً!');
-            connection.destroy();
-            return message.reply('✅ تم إخراج البوت بنجاح ✓');
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'قبول') {
-        if (!hasPermission(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-        try {
-            await targetMember.roles.add(REQUIRED_ROLE_ID);
-            await targetMember.send(`**___تم قبول طلبك للانضمام إلى إدارة الكسوفي بنجاح. 🎉___**`).catch(() => {});
-            return message.reply(`**___تم قبول العضو <@${targetMember.id}> و إنضمامه في ادارة الكسوفي بنجاح✓___**`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'رفض') {
-        if (!hasPermission(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-        try {
-            await targetMember.roles.add(TARGET_ROLE_REJECT);
-            await targetMember.send(`**___نأسف لإعلامك بأنه تم رفض طلبك للانضمام إلى إدارة الكسوفي.___**`).catch(() => {});
-            return message.reply(`**___تم رفض <@${targetMember.id}> تقديمك في ادارة الكسوفي ب نجاح✓___**`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'فصل') {
-        if (!hasPermission(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-        try {
-            const rolesToRemove = targetMember.roles.cache.filter(role => role.id !== message.guild.id && !role.managed);
+            let highestRoleBefore = `<@&${PROMOTION_ROLES_CHAIN[currentHighestIndex]}>`;
             await targetMember.roles.remove(rolesToRemove);
-            await targetMember.roles.add(TARGET_ROLE_DISMISS);
-            await targetMember.send(`**___تم فصلك من إدارة الكسوفي بناءً على قرار الإدارة العليا.___**`).catch(() => {});
-            return message.reply(`**___تم فصلك <@${targetMember.id}> من ادارة الكسوفي وذالك بعد مراجعة وضعك من قبل الادارة العليا واتخاذ القرار المناسب ✓___**`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'رصيد' || command === 'coins' || command === 'رصيدي') {
-        const targetUser = message.mentions.users.first() || message.author;
-        const balance = getCoins(targetUser.id);
-        return message.reply(`رصيد العضو <@${targetUser.id}> هو: \`${balance}\` \`coins\`  🏦`);
-    }
-
-    if (command === 'اضافه' || command === 'addcoins') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        const targetUser = message.mentions.users.first();
-        const amount = parseInt(args[1]);
-        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `اضافه @user [المبلغ]`');
-        addCoins(targetUser.id, amount);
-        return message.reply(`تمت اضافة الى العضو <@${targetUser.id}> رصيد بمبلغ \`${amount}\` \`coins\`  🏦`);
-    }
-
-    if (command === 'pay' || command === 'تحويل') {
-        const targetUser = message.mentions.users.first();
-        const amount = parseInt(args[1]);
-        if (!targetUser) return message.reply('❌ يرجى منشن الشخص!');
-        if (targetUser.id === message.author.id) return message.reply('❌ لا يمكنك التحويل لنفسك!');
-        if (!amount || amount <= 0) return message.reply('❌ مبلغ غير صحيح!');
-        const senderBalance = getCoins(message.author.id);
-        if (senderBalance < amount) return message.reply(`❌ رصيدك غير كافي!`);
-        removeCoins(message.author.id, amount);
-        addCoins(targetUser.id, amount);
-        return message.reply(`✅ تم تحويل **${amount}** كوينز بنجاح إلى <@${targetUser.id}>!`);
-    }
-
-    if (command === 'withdraw' || command === 'سحب') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        const targetUser = message.mentions.users.first();
-        const amount = parseInt(args[1]);
-        if (!targetUser || !amount || amount <= 0) return message.reply('❌ الاستخدام: `سحب @user [المبلغ]`');
-        removeCoins(targetUser.id, amount);
-        return message.reply(`تم سحب \`${amount}\` من <@${targetUser.id}> بنجاح ✓`);
-    }
-
-    if (command === 'reset' || command === 'تصفير') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-        const targetUser = message.mentions.users.first();
-        if (!targetUser) return message.reply('❌ يرجى منشن العضو!');
-        coinsData[targetUser.id] = { coins: 0 };
-        saveCoins();
-        return message.reply(`تم تصفير رصيد <@${targetUser.id}> بنجاح ✓`);
-    }
-
-    if (command === 'تحذير') {
-        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        const reason = args.slice(2).join(' ') || 'بدون سبب';
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-
-        const userWarns = getWarnings(targetMember.id);
-        userWarns.push({ reason, date: new Date().toLocaleDateString('ar-LY') });
-        saveWarnings();
-        return message.reply(`تم تحذير العضو <@${targetMember.id}> بنجاح✓\nالسبب: ${reason}`);
-    }
-
-    if (command === 'انتحذير') {
-        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-
-        const userWarns = getWarnings(targetMember.id);
-        if (userWarns.length > 0) {
-            userWarns.pop();
-            saveWarnings();
-        }
-        return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓`);
-    }
-
-    if (command === 'تحذيرات') {
-        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first() || message.member;
-        const userWarns = getWarnings(targetMember.id);
-        if (userWarns.length === 0) return message.reply(`عدد التحذيرات: \`0\``);
-        let warnsList = userWarns.map((w, index) => `> **#${index + 1}** | السبب: ${w.reason}`).join('\n');
-        return message.reply(`عدد التحذيرات: \`${userWarns.length}\`\n\n**الأسباب:**\n${warnsList}`);
-    }
-
-    if (command === 'تايم') {
-        if (!canManageTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        const timeArg = args[2];
-        if (!targetMember || !timeArg) return message.reply('❌ الاستخدام: `تايم @user [10m/2h/1d]`');
-
-        const match = timeArg.match(/^(\d+)([mhd])$/i);
-        if (!match) return message.reply('❌ الصيغة خاطئة!');
-
-        const value = parseInt(match[1]);
-        const unit = match[2].toLowerCase();
-        let durationMs = unit === 'm' ? value * 60 * 1000 : unit === 'h' ? value * 60 * 60 * 1000 : value * 24 * 60 * 60 * 1000;
-
-        try {
-            await targetMember.timeout(durationMs);
-            return message.reply(`تم اعطاء تايم لـ <@${targetMember.id}> بنجاح✓`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'انتايم') {
-        if (!canManageTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-        try {
-            await targetMember.timeout(null);
-            return message.reply(`تم الغاء التايم عن <@${targetMember.id}> بنجاح✓`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'برا') {
-        if (!canKick(message.member)) return message.reply('❌ ليس لديك صلاحية.');
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-        try {
-            await targetMember.kick();
-            return message.reply(`يلا برا مع الباب <@${targetMember.id}>`);
-        } catch (err) {
-            return message.reply('❌ حدث خطأ.');
-        }
-    }
-
-    if (command === 'top' && subCommand !== 'day') {
-        const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
-        if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
-        let desc = '';
-        sortedUsers.forEach(([userId, data], index) => {
-            let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🔹';
-            desc += `${medal} **#${index + 1}** | <@${userId}> — **${data.coins}** كوينز\n`;
-        });
-        return message.reply({ embeds: [{ title: '🏆 قائمة أغنى أعضاء السيرفر', description: desc, color: 0xFFD700 }] });
-    }
-});
-
-client.on('voiceStateUpdate', (oldState, newState) => {
-    const member = newState.member || oldState.member;
-    if (!member || member.user.bot) return;
-    const userId = member.id;
-
-    if (!oldState.channelId && newState.channelId) {
-        if (member.roles.cache.has(REQUIRED_ROLE_ID)) {
-            voiceTracker[userId] = Date.now();
-        }
-    } 
-    else if (oldState.channelId && !newState.channelId) {
-        if (voiceTracker[userId]) {
-            const duration = Math.floor((Date.now() - voiceTracker[userId]) / 60000);
-            if (duration > 0) {
-                if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
-                statsData[userId].voiceMinutes += duration;
-                const wData = getWeeklyData(userId);
-                wData.voiceMinutes += duration;
-                saveStats();
-                saveWeeklyStats();
+            
+            let remainingHighestIndex = -1;
+            for (let i = 0; i < removeStartIndex; i++) {
+                if (targetMember.roles.cache.has(PROMOTION_ROLES_CHAIN[i])) {
+                    remainingHighestIndex = i;
+                }
             }
-            delete voiceTracker[userId];
+            let newRoleAfter = remainingHighestIndex !== -1 ? `<@&${PROMOTION_ROLES_CHAIN[remainingHighestIndex]}>` : 'بدون رتبة';
+
+            return message.reply(
+                `**___تم تخفيض <@${targetMember.id}>\n\n` +
+                `من رتبة ${highestRoleBefore}\n\n` +
+                `الى رتبة ${newRoleAfter}\n\n` +
+                `بنجاح✓___**`
+            );
+        } catch (err) {
+            console.error(err);
+            return message.reply('❌ حدث خطأ أثناء إزالة الرتب عن العضو.');
         }
     }
 });
