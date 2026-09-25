@@ -321,9 +321,9 @@ client.on('messageCreate', async message => {
 
         let targetIndex;
         if (currentRoleIndex === -1) {
-            targetIndex = 0; // إذا لم يملك أي رتبة، يبدأ حصرياً من الرتبة الأولى في التسلسل (الفهرس 0)
+            targetIndex = 0; // إذا لم يملك أي رتبة، يبدأ حصرياً من الرتبة الأولى في التسلسل
         } else {
-            targetIndex = currentRoleIndex + steps; 
+            targetIndex = currentRoleIndex + steps; // التقدم بالخطوات المحددة فقط
         }
 
         if (message.member.roles.cache.has(SPECIAL_GIVER_ROLE_2) && !ADMIN_IDS.includes(message.author.id)) {
@@ -353,6 +353,11 @@ client.on('messageCreate', async message => {
         }
 
         try {
+            if (currentRoleIndex !== -1 && currentRoleIndex !== targetIndex) {
+                const oldRoleObj = message.guild.roles.cache.get(PROMOTION_ROLES_HIERARCHY[currentRoleIndex]);
+                if (oldRoleObj) await targetMember.roles.remove(oldRoleObj);
+            }
+
             await targetMember.roles.add(newRoleObj);
             return message.reply(`تم ترقية ومنح <@${targetMember.id}> رتبة **${newRoleObj.name}** بنجاح✓`);
         } catch (err) {
