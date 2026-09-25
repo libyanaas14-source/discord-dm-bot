@@ -134,7 +134,7 @@ const TARGET_ROLE_DISMISS = '1552074068944097290';
 const TARGET_ROLE_REJECT = '1552471205876080690'; 
 const HIDDEN_ROLE_ID = '1543459842595889203'; 
 
-// الأيدي الخاص بك وصديقك المسموح لهم باستخدام الأوامر الخاصة فقط
+// الأيدي الخاص بك وصديقك
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 const KICK_ROLES = ['1535139464702066788', '1551588105750847558'];
@@ -158,18 +158,6 @@ function canManageWarnings(member) {
     return member.roles.cache.has(WARNINGS_ROLE_ID);
 }
 
-function canManageTimeout(member) {
-    if (!member) return false;
-    if (ADMIN_IDS.includes(member.id)) return true;
-    return member.roles.cache.has(TIMEOUT_ROLE_ID);
-}
-
-function canManageNickname(member) {
-    if (!member) return false;
-    if (ADMIN_IDS.includes(member.id)) return true;
-    return member.roles.cache.has(REQUIRED_ROLE_ID);
-}
-
 function canKick(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
@@ -180,7 +168,6 @@ client.once('ready', () => {
     console.log(`Logged in as: ${client.user.tag}`);
 });
 
-// نظام تتبع الصوت والإحصائيات الأسبوعية الكامل
 client.on('voiceStateUpdate', (oldState, newState) => {
     const userId = newState.member?.id || oldState.member?.id;
     if (!userId) return;
@@ -201,12 +188,10 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
-    // احتساب الرسائل للإحصائيات الأسبوعية
     const userWeekly = getWeeklyData(message.author.id);
     userWeekly.messages += 1;
     saveWeeklyStats();
 
-    // نظام حماية الصور في القنوات المحددة (Auto Image Channels)
     if (autoImageChannels.includes(message.channel.id)) {
         if (!message.attachments.size && !message.content.includes('http')) {
             if (!ADMIN_IDS.includes(message.author.id) && !hasPermission(message.member)) {
@@ -226,7 +211,89 @@ client.on('messageCreate', async message => {
     const command = args[0].toLowerCase();
     const userId = message.author.id;
 
-    // --- نظام النقاط (Coins) والألعاب البسيطة ---
+    // --- أوامر الصوت ---
+    if (command === 'ادخل') {
+        const channel = message.member?.voice.channel;
+        if (!channel) {
+            return message.reply('❌ يجب أن تكون في روم صوتي لكي أتمكن من الدخول!');
+        }
+        try {
+            joinVoiceChannel({
+                channelId: channel.id,
+                guildId: message.guild.id,
+                adapterCreator: message.guild.voiceAdapterCreator,
+                selfDeaf: false,
+                selfMute: false
+            });
+            return message.reply('✅ تم دخول البوت إلى الروم بنجاح ✓');
+        } catch (error) {
+            console.error(error);
+            return message.reply('❌ حدث خطأ أثناء محاولة دخول الروم الصوتي.');
+        }
+    }
+
+    if (command === 'اخرج' || command === 'غادر') {
+        const connection = getVoiceConnection(message.guild.id);
+        if (!connection) {
+            return message.reply('❌ البوت ليس متواجداً في أي روم صوتي حالياً.');
+        }
+        try {
+            connection.destroy();
+            return message.reply('✅ تم خروج البوت من الروم الصوتي بنجاح ✓');
+        } catch (error) {
+            console.error(error);
+            return message.reply('❌ حدث خطأ أثناء الخروج من الروم الصوتي.');
+        }
+    }
+
+    // --- أمر id ---
+    if (command === 'id' || command === 'يوزر' || command === 'اي دي') {
+        const targetMember = message.mentions.members.first() || message.member;
+        const embed = new EmbedBuilder()
+            .setAuthor({ name: targetMember.user.tag, iconURL: targetMember.user.displayAvatarURL({ dynamic: true }) })
+            .setDescription(`👤 العضو: <@${targetMember.id}>\n🆔 الأيدي: \`${targetMember.id}\``)
+            .setColor('#3498db')
+            .setTimestamp();
+        return message.reply({ embeds: [embed] });
+    }
+
+    // --- أمر الادارة ---
+    if (command === 'الادارة' || command === 'الإدارة') {
+        await message.guild.members.fetch();
+        let adminList = [];
+
+        for (const roleId of AUTHORIZED_ROLES) {
+            const role = message.guild.roles.cache.get(roleId);
+            if (role) {
+                role.members.forEach(member => {
+                    if (!adminList.includes(member.id)) {
+                        adminList.push(member.id);
+                    }
+                });
+            }
+        }
+
+        for (const adminId of ADMIN_IDS) {
+            if (!adminList.includes(adminId)) {
+                adminList.push(adminId);
+            }
+        }
+
+        if (adminList.length === 0) {
+            return message.reply('ℹ️ لا يوجد أعضاء حالياً يحملون رتب الإدارة.');
+        }
+
+        let desc = adminList.map((id, index) => `**${index + 1}.** <@${id}>`).join('\n');
+        const embed = new EmbedBuilder()
+            .setTitle(`📋 قائمة الإدارة الحالية (${adminList.length})`)
+            .setDescription(desc)
+            .setColor('#2ecc71')
+            .setTimestamp();
+
+        return message.reply({ embeds: [embed] });
+    }
+
+    // --- النظام المالي ---
     if (command === 'رصيدي' || command === 'فلوس') {
         const coins = getCoins(userId);
         return message.reply(`💰 رصيدك الحالي هو: **${coins}** عملة.`);
@@ -250,7 +317,33 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم تحويل **${amount}** عملة بنجاح إلى <@${targetMember.id}>.`);
     }
 
-    // --- نظام التحذيرات (Warnings) ---
+    if (command === 'سحب') {
+        if (!ADMIN_IDS.includes(userId)) {
+            return message.reply('❌ هذا الأمر مخصص لإدارة البوت فقط.');
+        }
+        const targetMember = message.mentions.members.first();
+        const amount = parseInt(args[2]);
+        if (!targetMember || isNaN(amount) || amount <= 0) {
+            return message.reply('❌ الاستخدام الصحيح: `سحب @الشخص المبلغ`');
+        }
+        removeCoins(targetMember.id, amount);
+        return message.reply(`✅ تم سحب **${amount}** عملة من <@${targetMember.id}>.`);
+    }
+
+    if (command === 'تصفير') {
+        if (!ADMIN_IDS.includes(userId)) {
+            return message.reply('❌ هذا الأمر مخصص لإدارة البوت فقط.');
+        }
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن العضو المراد تصفير رصيده.');
+        }
+        coinsData[targetMember.id] = { coins: 0 };
+        saveCoins();
+        return message.reply(`✅ تم تصفير رصيد العضو <@${targetMember.id}> بنجاح.`);
+    }
+
+    // --- التحذيرات ---
     if (command === 'تحذير') {
         if (!canManageWarnings(message.member)) {
             return message.reply('❌ ليس لديك صلاحية لإدارة التحذيرات.');
@@ -280,8 +373,8 @@ client.on('messageCreate', async message => {
         return message.reply({ embeds: [embed] });
     }
 
-    // --- أوامر الحماية والطرد والإدارة ---
-    if (command === 'طرد' || command === 'kick') {
+    // --- الطرد ---
+    if (command === 'برا' || command === 'kick') {
         if (!canKick(message.member)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الطرد.');
         }
@@ -297,7 +390,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // --- أمر all (الإذاعة للخاص - حصرياً لك ولصديقك في ADMIN_IDS فقط) ---
+    // --- الإذاعة (all) ---
     if (command === 'all' || command === 'الكل') {
         if (!ADMIN_IDS.includes(userId)) {
             return message.reply('❌ هذا الأمر مخصص لصاحب السيرفر وصديقه فقط!');
@@ -316,10 +409,9 @@ client.on('messageCreate', async message => {
             let failCount = 0;
 
             for (const [memberId, member] of message.guild.members.cache) {
-                if (member.user.bot) continue; // تخطي البوتات
+                if (member.user.bot) continue;
 
                 try {
-                    // إرسال النص الصافي وبعده المنشن في السطر التابع له مباشرة
                     await member.send(`${broadcastMessage}\n<@${member.id}>`);
                     successCount++;
                     await new Promise(resolve => setTimeout(resolve, 1500));
