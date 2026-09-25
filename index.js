@@ -133,6 +133,8 @@ const BYPASS_ROLE_ID = '1535139464702066788';
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const TARGET_ROLE_REJECT = '1552471205876080690'; 
 const HIDDEN_ROLE_ID = '1543459842595889203'; 
+
+// الأيدي الخاص بك وصديقك المسموح لهم باستخدام الأوامر الخاصة فقط
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 const KICK_ROLES = ['1535139464702066788', '1551588105750847558'];
@@ -295,10 +297,10 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // --- أمر all (الإذاعة للخاص لجميع الأعضاء بدون زيادات مزعجة) ---
+    // --- أمر all (الإذاعة للخاص - حصرياً لك ولصديقك في ADMIN_IDS فقط) ---
     if (command === 'all' || command === 'الكل') {
-        if (!hasPermission(message.member) && !ADMIN_IDS.includes(userId)) {
-            return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+        if (!ADMIN_IDS.includes(userId)) {
+            return message.reply('❌ هذا الأمر مخصص لصاحب السيرفر وصديقه فقط!');
         }
 
         const broadcastMessage = args.slice(1).join(' ');
@@ -317,7 +319,7 @@ client.on('messageCreate', async message => {
                 if (member.user.bot) continue; // تخطي البوتات
 
                 try {
-                    // إرسال النص الصافي المكتوب وبعده المنشن في السطر التابع له
+                    // إرسال النص الصافي وبعده المنشن في السطر التابع له مباشرة
                     await member.send(`${broadcastMessage}\n<@${member.id}>`);
                     successCount++;
                     await new Promise(resolve => setTimeout(resolve, 1500));
