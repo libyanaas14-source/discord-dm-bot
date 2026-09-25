@@ -226,6 +226,7 @@ client.on('messageCreate', async message => {
     const fullMessage = message.content.trim().toLowerCase();
     const args = message.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
+    const subCommand = args[1] ? args[1].toLowerCase() : '';
     const userId = message.author.id;
 
     const wData = getWeeklyData(userId);
@@ -236,31 +237,42 @@ client.on('messageCreate', async message => {
     }
     saveWeeklyStats();
 
-    // --- أمر day (يتطلب رتبة الإدارة المطلوبة أو الآدمن) ---
-    if (command === 'day') {
+    // --- أمر top day ---
+    if (command === 'top' && subCommand === 'day') {
         if (!ADMIN_IDS.includes(message.author.id) && !message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         }
 
-        const sortedStats = Object.entries(statsData)
-            .sort((a, b) => b[1].messages - a[1].messages)
-            .slice(0, 10);
-
-        if (sortedStats.length === 0) {
+        if (Object.keys(statsData).length === 0) {
             return message.reply('📊 لا توجد تفاعلات مسجلة لهذا اليوم حتى الآن.');
         }
 
-        let desc = '';
-        sortedStats.forEach(([uId, data], index) => {
-            let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🔹';
-            let voiceHours = (data.voiceMinutes / 60).toFixed(1);
-            desc += `${medal} **#${index + 1}** \vert{} <@${uId}> — رسائل: \`${data.messages}\` | فويس: \`${voiceHours}h\`\n`;
+        // ترتيب الأعضاء حسب الرسائل (أكثر 5)
+        const topMessages = Object.entries(statsData)
+            .sort((a, b) => b[1].messages - a[1].messages)
+            .slice(0, 5);
+
+        // ترتيب الأعضاء حسب الفويس (أكثر 5)
+        const topVoice = Object.entries(statsData)
+            .sort((a, b) => b[1].voiceMinutes - a[1].voiceMinutes)
+            .slice(0, 5);
+
+        let medals = ['🔹 #1', '🔹 #2', '🔹 #3', '🔹 #4', '🔹 #5'];
+
+        let msgDesc = '';
+        topMessages.forEach(([uId, data], index) => {
+            msgDesc += `${medals[index]} | <@${uId}> —${data.messages} رسالة\n`;
+        });
+
+        let voiceDesc = '';
+        topVoice.forEach(([uId, data], index) => {
+            voiceDesc += `${medals[index]} | <@${uId}> —${data.voiceMinutes} دقيقة\n`;
         });
 
         return message.reply({
             embeds: [{
-                title: '📊 توب التفاعل اليومي (أعضاء الإدارة)',
-                description: desc,
+                title: '📊 توب التفاعل اليومي',
+                description: `💬 **أكثر 5 تفاعلاً بالرسائل:**\n${msgDesc}\n🎙️ **أكثر 5 تواجدأ بالفويس:**\n${voiceDesc}\n> يتم التصفير يومياً الساعة 2:00 ليلاً بتوقيت ليبيا`,
                 color: 0x00FF00,
                 timestamp: new Date()
             }]
@@ -575,7 +587,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    if (command === 'top' || command === 'المتصدرين') {
+    if (command === 'top' && subCommand !== 'day') {
         const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
         if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
         let desc = '';
