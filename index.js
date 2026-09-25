@@ -135,6 +135,16 @@ const AUTHORIZED_ROLES = [
     '1551588105750847558'
 ];
 
+// تسلسل رتب الترقيات والتخفيضات (من الأدنى إلى الأعلى)
+const PROMOTION_ROLES_HIERARCHY = [
+    '1535139464702066788', // الرتبة الأولى
+    '1543460225208549416', // الرتبة الثانية
+    '1537277782487203940'  // الرتبة القصوى
+];
+
+const SPECIAL_GIVER_ROLE_1 = '1535139464702066788';
+const SPECIAL_GIVER_ROLE_2 = '1543460225208549416';
+
 const TARGET_IMAGE_URL = 'https://cdn.discordapp.com/attachments/1534641628424306794/1552089376144760872/InShot_20260921_192118508.png?ex=6ab4575f&is=6ab305df&hm=9b2326ea05d81c5985e41b86c69682a59ffe7d1a443be9e9278f6d32c7939c55&';
 
 function hasPermission(member) {
@@ -165,6 +175,12 @@ function canKick(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
     return member.roles.cache.some(role => KICK_ROLES.includes(role.id));
+}
+
+function canPromoteOrDemote(member) {
+    if (!member) return false;
+    if (ADMIN_IDS.includes(member.id)) return true;
+    return member.roles.cache.has(SPECIAL_GIVER_ROLE_1) || member.roles.cache.has(SPECIAL_GIVER_ROLE_2);
 }
 
 client.once('ready', () => {
@@ -223,10 +239,8 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
-    const fullMessage = message.content.trim().toLowerCase();
     const args = message.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
-    const subCommand = args[1] ? args[1].toLowerCase() : '';
     const userId = message.author.id;
 
     const wData = getWeeklyData(userId);
@@ -236,48 +250,6 @@ client.on('messageCreate', async message => {
         wData.claims += 1;
     }
     saveWeeklyStats();
-
-    // --- أمر top day ---
-    if (command === 'top' && subCommand === 'day') {
-        if (!ADMIN_IDS.includes(message.author.id) && !message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
-            return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
-        }
-
-        if (Object.keys(statsData).length === 0) {
-            return message.reply('📊 لا توجد تفاعلات مسجلة لهذا اليوم حتى الآن.');
-        }
-
-        // ترتيب الأعضاء حسب الرسائل (أكثر 5)
-        const topMessages = Object.entries(statsData)
-            .sort((a, b) => b[1].messages - a[1].messages)
-            .slice(0, 5);
-
-        // ترتيب الأعضاء حسب الفويس (أكثر 5)
-        const topVoice = Object.entries(statsData)
-            .sort((a, b) => b[1].voiceMinutes - a[1].voiceMinutes)
-            .slice(0, 5);
-
-        let medals = ['🔹 #1', '🔹 #2', '🔹 #3', '🔹 #4', '🔹 #5'];
-
-        let msgDesc = '';
-        topMessages.forEach(([uId, data], index) => {
-            msgDesc += `${medals[index]} | <@${uId}> —${data.messages} رسالة\n`;
-        });
-
-        let voiceDesc = '';
-        topVoice.forEach(([uId, data], index) => {
-            voiceDesc += `${medals[index]} | <@${uId}> —${data.voiceMinutes} دقيقة\n`;
-        });
-
-        return message.reply({
-            embeds: [{
-                title: '📊 توب التفاعل اليومي',
-                description: `💬 **أكثر 5 تفاعلاً بالرسائل:**\n${msgDesc}\n🎙️ **أكثر 5 تواجدأ بالفويس:**\n${voiceDesc}\n> يتم التصفير يومياً الساعة 2:00 ليلاً بتوقيت ليبيا`,
-                color: 0x00FF00,
-                timestamp: new Date()
-            }]
-        });
-    }
 
     if (command === 'تفعيل') {
         if (!ADMIN_IDS.includes(message.author.id)) return;
@@ -324,6 +296,114 @@ client.on('messageCreate', async message => {
             return message.reply(`**___تم اعطاء <@${targetMember.id}> رتبة المخفية بنجاح ✓___**`);
         } catch (err) {
             return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة.');
+        }
+    }
+
+    // --- أمر الترقية المضبط بدقة نهائية ---
+    if (command === 'ترقيه' || command === 'ترقية') {
+        if (!canPromoteOrDemote(message.member)) {
+            return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الترقية.');
+        }
+        
+        const targetMember = message.mentions.members.first();
+        const steps = parseInt(args[2]) || 1;
+
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن الشخص المراد ترقيته! (مثال: `ترقيه @الشخص 1`)');
+        }
+
+        let currentRoleIndex = -1;
+        for (let i = 0; i < PROMOTION_ROLES_HIERARCHY.length; i++) {
+            if (targetMember.roles.cache.has(PROMOTION_ROLES_HIERARCHY[i])) {
+                currentRoleIndex = i; 
+            }
+        }
+
+        let targetIndex;
+        if (currentRoleIndex === -1) {
+            targetIndex = 0; // إذا لم يملك أي رتبة، يبدأ حصرياً من الرتبة الأولى في التسلسل (الفهرس 0)
+        } else {
+            targetIndex = currentRoleIndex + steps; 
+        }
+
+        if (message.member.roles.cache.has(SPECIAL_GIVER_ROLE_2) && !ADMIN_IDS.includes(message.author.id)) {
+            const myRoleIndex = PROMOTION_ROLES_HIERARCHY.indexOf(SPECIAL_GIVER_ROLE_2);
+            if (targetIndex >= myRoleIndex) {
+                targetIndex = myRoleIndex - 1;
+            }
+        }
+
+        const maxLimitRoleIndex = PROMOTION_ROLES_HIERARCHY.length - 1;
+        if (targetIndex > maxLimitRoleIndex) {
+            return message.reply(`⚠️ العضو <@${targetMember.id}> وصل إلى **أقصى رتبة** في تسلسل الترقيات ولا يمكن ترقيته أكثر!`);
+        }
+        if (targetIndex < 0) {
+            targetIndex = 0;
+        }
+
+        const newRoleId = PROMOTION_ROLES_HIERARCHY[targetIndex];
+        const newRoleObj = message.guild.roles.cache.get(newRoleId);
+
+        if (!newRoleObj) {
+            return message.reply('❌ حدث خطأ في تحديد الرتبة المقصودة، تأكد من أيدي الرتب في الكود.');
+        }
+
+        if (targetMember.roles.cache.has(newRoleId)) {
+            return message.reply(`⚠️ العضو <@${targetMember.id}> يملك هذه الرتبة بالفعل (${newRoleObj.name})!`);
+        }
+
+        try {
+            await targetMember.roles.add(newRoleObj);
+            return message.reply(`تم ترقية ومنح <@${targetMember.id}> رتبة **${newRoleObj.name}** بنجاح✓`);
+        } catch (err) {
+            console.error('خطأ في الترقية:', err);
+            return message.reply('❌ حدث خطأ أثناء تنفيذ الترقية (تأكد من أن رتبة البوت أعلى من الرتب المراد تعديلها).');
+        }
+    }
+
+    // --- أمر التخفيض المضبط بدقة ---
+    if (command === 'تخفيض') {
+        if (!canPromoteOrDemote(message.member)) {
+            return message.reply('❌ ليس لديك صلاحية لاستخدام أمر التخفيض.');
+        }
+        
+        const targetMember = message.mentions.members.first();
+        const steps = parseInt(args[2]) || 1;
+
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن الشخص المراد تخفيضه! (مثال: `تخفيض @الشخص 1`)');
+        }
+
+        let currentRoleIndex = -1;
+        let currentRoleObj = null;
+
+        for (let i = 0; i < PROMOTION_ROLES_HIERARCHY.length; i++) {
+            if (targetMember.roles.cache.has(PROMOTION_ROLES_HIERARCHY[i])) {
+                currentRoleIndex = i;
+                currentRoleObj = message.guild.roles.cache.get(PROMOTION_ROLES_HIERARCHY[i]);
+            }
+        }
+
+        if (currentRoleIndex === -1 || !currentRoleObj) {
+            return message.reply(`❌ العضو المستهدف لا يملك أي رتبة من رتب التسلسل لكي يتم تخفيضه.`);
+        }
+
+        let targetIndex = currentRoleIndex - steps;
+        if (targetIndex < 0) targetIndex = 0;
+
+        const newRoleId = PROMOTION_ROLES_HIERARCHY[targetIndex];
+        const newRoleObj = message.guild.roles.cache.get(newRoleId);
+
+        try {
+            await targetMember.roles.remove(currentRoleObj);
+            if (currentRoleIndex !== targetIndex && newRoleObj) {
+                await targetMember.roles.add(newRoleObj);
+            }
+
+            return message.reply(`تم تخفيض <@${targetMember.id}> وإرجاعه إلى رتبة **${newRoleObj ? newRoleObj.name : 'البداية'}** بنجاح✓`);
+        } catch (err) {
+            console.error('خطأ في التخفيض:', err);
+            return message.reply('❌ حدث خطأ أثناء تنفيذ التخفيض.');
         }
     }
 
@@ -587,7 +667,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    if (command === 'top' && subCommand !== 'day') {
+    if (command === 'top' || command === 'المتصدرين') {
         const sortedUsers = Object.entries(coinsData).sort((a, b) => b[1].coins - a[1].coins).slice(0, 10);
         if (sortedUsers.length === 0) return message.reply('📊 لا توجد بيانات حالياً.');
         let desc = '';
