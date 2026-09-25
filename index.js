@@ -261,15 +261,16 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
     }
 
+    // --- التعديل هنا لحل مشكلة الصورة (إرسالها كصورة بارزة ومباشرة) ---
     if (autoImageChannels.includes(message.channel.id)) {
         try {
-            await message.channel.send({
-                files: [TARGET_IMAGE_URL]
-            });
+            const attachment = new AttachmentBuilder(TARGET_IMAGE_URL, { name: 'kusoofi.png' });
+            await message.channel.send({ files: [attachment] });
         } catch (err) {
             console.error('خطأ أثناء إرسال الصورة التلقائية:', err);
         }
     }
+    // ----------------------------------------------------------------
 
     if (message.member && message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
         if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
