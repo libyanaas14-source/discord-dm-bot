@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, AttachmentBuilder } = require('discord.js');
 const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const express = require('express');
 const fs = require('fs');
@@ -263,7 +263,8 @@ client.on('messageCreate', async message => {
 
     if (autoImageChannels.includes(message.channel.id)) {
         try {
-            await message.channel.send({ files: [TARGET_IMAGE_URL] });
+            const attachment = new AttachmentBuilder(TARGET_IMAGE_URL);
+            await message.channel.send({ files: [attachment] });
         } catch (err) {
             console.error('خطأ أثناء إرسال الصورة التلقائية:', err);
         }
