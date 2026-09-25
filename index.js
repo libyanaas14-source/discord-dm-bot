@@ -299,7 +299,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // --- أمر الترقية المضبط بدقة نهائية ---
+    // --- أمر الترقية المضبط بدقة صحيحة وثابتة ---
     if (command === 'ترقيه' || command === 'ترقية') {
         if (!canPromoteOrDemote(message.member)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الترقية.');
@@ -321,9 +321,9 @@ client.on('messageCreate', async message => {
 
         let targetIndex;
         if (currentRoleIndex === -1) {
-            targetIndex = 0; // إذا لم يملك أي رتبة، يبدأ حصرياً من الرتبة الأولى في التسلسل
+            targetIndex = steps - 1;
         } else {
-            targetIndex = currentRoleIndex + steps; // التقدم بالخطوات المحددة فقط
+            targetIndex = currentRoleIndex + steps;
         }
 
         if (message.member.roles.cache.has(SPECIAL_GIVER_ROLE_2) && !ADMIN_IDS.includes(message.author.id)) {
@@ -353,9 +353,11 @@ client.on('messageCreate', async message => {
         }
 
         try {
-            if (currentRoleIndex !== -1 && currentRoleIndex !== targetIndex) {
+            if (currentRoleIndex !== -1) {
                 const oldRoleObj = message.guild.roles.cache.get(PROMOTION_ROLES_HIERARCHY[currentRoleIndex]);
-                if (oldRoleObj) await targetMember.roles.remove(oldRoleObj);
+                if (oldRoleObj) {
+                    await targetMember.roles.remove(oldRoleObj);
+                }
             }
 
             await targetMember.roles.add(newRoleObj);
