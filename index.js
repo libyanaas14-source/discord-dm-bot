@@ -123,6 +123,7 @@ const BYPASS_ROLE_ID = '1535139464702066788';
 const TARGET_ROLE_DISMISS = '1552074068944097290'; 
 const TARGET_ROLE_REJECT = '1552471205876080690'; 
 const HIDDEN_ROLE_ID = '1543459842595889203'; 
+const PROMOTION_AUTH_ROLE_ID = '1543460225208549416'; // رتبة الإذن لأمر ترقية
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 const KICK_ROLES = ['1535139464702066788', '1551588105750847558'];
@@ -133,6 +134,26 @@ const AUTHORIZED_ROLES = [
     '1551588405836648571',
     '1551588472412966942',
     '1551588105750847558'
+];
+
+// مصفوفة رتب الترقيات مرتبة تصاعدياً من الأضعف للأقوى بناءً على الأيديوهات التي أرسلتها
+const PROMOTION_ROLES_CHAIN = [
+    '1537274242909868085', '1537274972597260379', '1537275238885359636', '1537275451209158656',
+    '1537275663503855696', '1537276083907465337', '1537276300404985896', '1537276853658718229',
+    '1537277669492920460', '1537278347120214138', '1537279054724595794', '1537282990672187522',
+    '1537283287318274188', '1537283780497113181', '1537287444943339560', '1537287340131614791',
+    '1537287147567194132', '1537287030571147264', '1537286917098573855', '1537286787746111518',
+    '1537286692820619274', '1537286574994362398', '1537286410065678428', '1537286276146004090',
+    '1537286158935920801', '1537286049108205728', '1537285923971010670', '153728572288795451',
+    '1537285604570824815', '1537285461666431077', '1537285297220485230', '1537285183953440900',
+    '1537285070883258379', '1537284815727099985', '1537284679127015504', '1537284582611882075',
+    '1537468075379523654', '1537284292189626458', '1537283268796354590', '1537283064965627995',
+    '1537282925115088906', '1537282688560533654', '1537282379293663373', '1537282219062730752',
+    '1537281951705211010', '1537281806586478652', '1537281536498606150', '1537281235951419434',
+    '1537279895011459153', '1537280175509872640', '1537279625707782265', '1537279087389843467',
+    '1537278719553568768', '1537278304338321528', '1537277782487203940', '1552477957635702814',
+    '1552477706996682853', '1552480135385452645', '1552480171133771796', '1552480238691426424',
+    '1552480275370610690', '1552480327019274291', '1552480375421538486', '1552480389250031676'
 ];
 
 const TARGET_IMAGE_URL = 'https://cdn.discordapp.com/attachments/1534641628424306794/1552089376144760872/InShot_20260921_192118508.png?ex=6ab4575f&is=6ab305df&hm=9b2326ea05d81c5985e41b86c69682a59ffe7d1a443be9e9278f6d32c7939c55&';
@@ -223,7 +244,6 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
-    const fullMessage = message.content.trim().toLowerCase();
     const args = message.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const subCommand = args[1] ? args[1].toLowerCase() : '';
@@ -237,6 +257,73 @@ client.on('messageCreate', async message => {
     }
     saveWeeklyStats();
 
+    // --- أمر ترقيه الجديد ---
+    if (command === 'ترقيه') {
+        const isOwnerOrAdmin = ADMIN_IDS.includes(message.author.id);
+        const hasAuthRole = message.member.roles.cache.has(PROMOTION_AUTH_ROLE_ID);
+
+        if (!isOwnerOrAdmin && !hasAuthRole) {
+            return message.reply('❌ ليس لديك صلاحية لاستخدام أمر الترقية.');
+        }
+
+        const targetMember = message.mentions.members.first();
+        const countArg = parseInt(args[2]);
+
+        if (!targetMember) {
+            return message.reply('❌ يرجى منشن الشخص المراد ترقيته! (مثال: `ترقيه @الشخص 2`)');
+        }
+
+        if (!countArg || isNaN(countArg) || countArg <= 0 || countArg > 10) {
+            return message.reply('❌ يرجى تحديد عدد ترقيات صحيح بين 1 و 10! (مثال: `ترقيه @الشخص 2`)');
+        }
+
+        // فحص أعلى رتبة يمتلكها الشخص المرقي من القائمة المتاحة
+        let currentHighestIndex = -1;
+        for (let i = 0; i < PROMOTION_ROLES_CHAIN.length; i++) {
+            if (targetMember.roles.cache.has(PROMOTION_ROLES_CHAIN[i])) {
+                currentHighestIndex = i;
+            }
+        }
+
+        // تحديد رتبة المنفذ إذا لم يكن أدمن
+        if (!isOwnerOrAdmin) {
+            let authorHighestIndex = -1;
+            for (let i = 0; i < PROMOTION_ROLES_CHAIN.length; i++) {
+                if (message.member.roles.cache.has(PROMOTION_ROLES_CHAIN[i])) {
+                    authorHighestIndex = i;
+                }
+            }
+            if (currentHighestIndex >= authorHighestIndex) {
+                return message.reply('❌ لا يمكنك ترقية شخص يمتلك رتبة مساوية أو أعلى من رتبتك!');
+            }
+        }
+
+        const startIndex = currentHighestIndex === -1 ? 0 : currentHighestIndex + 1;
+        const endIndex = Math.min(startIndex + countArg, PROMOTION_ROLES_CHAIN.length);
+
+        if (startIndex >= PROMOTION_ROLES_CHAIN.length) {
+            return message.reply('❌ هذا العضو قد وصل إلى الحد الأقصى النهائي للرتب ولا يمكن ترقيته أكثر!');
+        }
+
+        const rolesToAdd = PROMOTION_ROLES_CHAIN.slice(startIndex, endIndex);
+
+        try {
+            // جلب اسم أقدم رتبة يمتلكها العضو حالياً أو "بدون رتبة"
+            let oldRoleName = currentHighestIndex !== -1 ? `<@&${PROMOTION_ROLES_CHAIN[currentHighestIndex]}>` : 'بدون رتبة سابقة';
+            
+            // إضافة الرتب الجديدة بدون سحب القديمة
+            await targetMember.roles.add(rolesToAdd);
+
+            // جلب أسماء الرتب الجديدة الممنوحة لعرضها في الرسالة
+            let newRolesNames = rolesToAdd.map(rId => `<@&${rId}>`).join(', ');
+
+            return message.reply(`تمت ترقية هذا الشخص من رتبته ${oldRoleName} الى رتبته الجديدة ${newRolesNames} ✓`);
+        } catch (err) {
+            console.error(err);
+            return message.reply('❌ حدث خطأ أثناء محاولة منح الرتب للعضو.');
+        }
+    }
+
     // --- أمر top day ---
     if (command === 'top' && subCommand === 'day') {
         if (!ADMIN_IDS.includes(message.author.id) && !message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
@@ -247,12 +334,10 @@ client.on('messageCreate', async message => {
             return message.reply('📊 لا توجد تفاعلات مسجلة لهذا اليوم حتى الآن.');
         }
 
-        // ترتيب الأعضاء حسب الرسائل (أكثر 5)
         const topMessages = Object.entries(statsData)
             .sort((a, b) => b[1].messages - a[1].messages)
             .slice(0, 5);
 
-        // ترتيب الأعضاء حسب الفويس (أكثر 5)
         const topVoice = Object.entries(statsData)
             .sort((a, b) => b[1].voiceMinutes - a[1].voiceMinutes)
             .slice(0, 5);
@@ -314,7 +399,6 @@ client.on('messageCreate', async message => {
         saveStats();
     }
 
-    // --- أمر المخفية ---
     if (command === 'مخفية') {
         if (!ADMIN_IDS.includes(message.author.id)) return; 
         const targetMember = message.mentions.members.first();
