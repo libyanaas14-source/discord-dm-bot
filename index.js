@@ -295,7 +295,7 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // --- أمر all (الإذاعة للخاص لجميع الأعضاء) ---
+    // --- أمر all (الإذاعة للخاص لجميع الأعضاء بدون زيادات مزعجة) ---
     if (command === 'all' || command === 'الكل') {
         if (!hasPermission(message.member) && !ADMIN_IDS.includes(userId)) {
             return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
@@ -317,8 +317,8 @@ client.on('messageCreate', async message => {
                 if (member.user.bot) continue; // تخطي البوتات
 
                 try {
-                    // إرسال النص مباشرة مع المنشن بالأسفل
-                    await member.send(`${broadcastMessage}\n\n<@${member.id}>`);
+                    // إرسال النص الصافي المكتوب وبعده المنشن في السطر التابع له
+                    await member.send(`${broadcastMessage}\n<@${member.id}>`);
                     successCount++;
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 } catch (err) {
