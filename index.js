@@ -136,9 +136,6 @@ const AUTHORIZED_ROLES = [
     '1551588105750847558'
 ];
 
-// رابط الصورة الجديد والمباشر المأخوذ من صورتك
-const TARGET_IMAGE_URL = 'https://media.discordapp.net/attachments/1544078337838817330/1000138858/1000138858.png'; 
-
 function hasPermission(member) {
     if (!member) return false;
     if (ADMIN_IDS.includes(member.id)) return true;
@@ -264,8 +261,13 @@ client.on('messageCreate', async message => {
 
     if (autoImageChannels.includes(message.channel.id)) {
         try {
-            const attachment = new AttachmentBuilder('https://cdn.discordapp.com/attachments/1544078337838817330/1551661010316689499/InShot_20260921_192118508-1.png', { name: 'kusoofi.png' });
-            await message.channel.send({ files: [attachment] });
+            // استخدام رابط مباشر وصحيح للصورة بصيغة png
+            await message.channel.send({
+                files: [{
+                    attachment: 'https://media.discordapp.net/attachments/1544078337838817330/1551661010316689499/InShot_20260921_192118508-1.png',
+                    name: 'kusoofi.png'
+                }]
+            });
         } catch (err) {
             console.error('خطأ أثناء إرسال الصورة التلقائية:', err);
         }
