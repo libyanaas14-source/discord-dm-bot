@@ -136,7 +136,8 @@ const AUTHORIZED_ROLES = [
     '1551588105750847558'
 ];
 
-const TARGET_IMAGE_URL = 'https://cdn.discordapp.com/attachments/1544078337838817330/1551661010316689499/InShot_20260921_192118508-1.png?ex=6ab2c86d&is=6ab176ed&hm=e092497fbfd881c9f68f21481d0984d6ae7105236bb8dca2c8758bc8208506ef&';
+// رابط الصورة الجديد والمباشر المأخوذ من صورتك
+const TARGET_IMAGE_URL = 'https://media.discordapp.net/attachments/1544078337838817330/1000138858/1000138858.png'; 
 
 function hasPermission(member) {
     if (!member) return false;
@@ -261,16 +262,14 @@ client.on('messageCreate', async message => {
         return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
     }
 
-    // --- التعديل هنا لحل مشكلة الصورة (إرسالها كصورة بارزة ومباشرة) ---
     if (autoImageChannels.includes(message.channel.id)) {
         try {
-            const attachment = new AttachmentBuilder(TARGET_IMAGE_URL, { name: 'kusoofi.png' });
+            const attachment = new AttachmentBuilder('https://cdn.discordapp.com/attachments/1544078337838817330/1551661010316689499/InShot_20260921_192118508-1.png', { name: 'kusoofi.png' });
             await message.channel.send({ files: [attachment] });
         } catch (err) {
             console.error('خطأ أثناء إرسال الصورة التلقائية:', err);
         }
     }
-    // ----------------------------------------------------------------
 
     if (message.member && message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
         if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
