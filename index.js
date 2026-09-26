@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, AttachmentBuilder } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const express = require('express');
 const fs = require('fs');
@@ -17,7 +17,6 @@ app.listen(PORT, () => {
 const DATA_FILE = './coins.json';
 const STATS_FILE = './stats.json';
 const PERMS_BACKUP_FILE = './perms_backup.json';
-const AUTO_CHANNELS_FILE = './auto_channels.json';
 const WEEKLY_STATS_FILE = './weekly_stats.json';
 const WARNINGS_FILE = './warnings.json';
 
@@ -25,7 +24,6 @@ let coinsData = {};
 let statsData = {}; 
 let voiceTracker = {}; 
 let channelPermsBackup = {};
-let autoImageChannels = [];
 let weeklyStats = {}; 
 let warningsData = {};
 
@@ -39,10 +37,6 @@ if (fs.existsSync(STATS_FILE)) {
 
 if (fs.existsSync(PERMS_BACKUP_FILE)) {
     try { channelPermsBackup = JSON.parse(fs.readFileSync(PERMS_BACKUP_FILE, 'utf8')); } catch (e) { channelPermsBackup = {}; }
-}
-
-if (fs.existsSync(AUTO_CHANNELS_FILE)) {
-    try { autoImageChannels = JSON.parse(fs.readFileSync(AUTO_CHANNELS_FILE, 'utf8')); } catch (e) { autoImageChannels = []; }
 }
 
 if (fs.existsSync(WEEKLY_STATS_FILE)) {
@@ -63,10 +57,6 @@ function saveStats() {
 
 function savePermsBackup() {
     fs.writeFileSync(PERMS_BACKUP_FILE, JSON.stringify(channelPermsBackup, null, 2));
-}
-
-function saveAutoChannels() {
-    fs.writeFileSync(AUTO_CHANNELS_FILE, JSON.stringify(autoImageChannels, null, 2));
 }
 
 function saveWeeklyStats() {
@@ -126,7 +116,6 @@ const HIDDEN_ROLE_ID = '1543459842595889203';
 const ADMIN_IDS = ['1489281825942667355', '1476270096296050730'];
 
 const KICK_ROLES = ['1535139464702066788', '1551588105750847558'];
-
 const ID_COMMAND_TARGET_ROLE = '1537274972597260379'; 
 
 const AUTHORIZED_ROLES = [
@@ -190,7 +179,7 @@ client.once('ready', () => {
         if (libyaDay === 6 && libyaHours === 0 && libyaMinutes === 0) {
             weeklyStats = {};
             saveWeeklyStats();
-            console.log('🔄 تم تصفير إحصائيات الأسبوع (الرسائل والفويس والتكتات) تلقائياً بنجاح.');
+            console.log('🔄 تم تصفير إحصائيات الأسبوع تلقائياً بنجاح.');
         }
     }, 60000);
 
@@ -222,6 +211,17 @@ client.once('ready', () => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
 
+    // حذف رسالة "خط" بعد 3 ثواني إذا كانت من أحد الأدمنز (أنت أو صاحبك)
+    if (ADMIN_IDS.includes(message.author.id) && message.content.trim() === 'خط') {
+        setTimeout(async () => {
+            try {
+                await message.delete();
+            } catch (err) {
+                // تجاهل الخطأ إذا كانت الرسالة محذوفة مسبقاً
+            }
+        }, 3000);
+    }
+
     const args = message.content.trim().split(/ +/);
     const command = args[0].toLowerCase();
     const userId = message.author.id;
@@ -233,45 +233,6 @@ client.on('messageCreate', async message => {
         wData.claims += 1;
     }
     saveWeeklyStats();
-
-    if (command === 'تفعيل') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-
-        if (autoImageChannels.includes(message.channel.id)) {
-            return message.reply('⚠️ الخط التلقائي مفعل مسبقاً في هذا الروم!');
-        }
-
-        autoImageChannels.push(message.channel.id);
-        saveAutoChannels();
-        return message.reply(`✅ تم تفعيل الخط التلقائي بنجاح في هذا الروم (<#${message.channel.id}>)! أي رسالة ستُرسل هنا سيتبعها البوت بصورة الخط (Kusoofi) تلقائياً.`);
-    }
-
-    if (command === 'إلغاء') {
-        if (!ADMIN_IDS.includes(message.author.id)) return;
-
-        const index = autoImageChannels.indexOf(message.channel.id);
-        if (index === -1) {
-            return message.reply('⚠️ الخط التلقائي غير مفعل أصلاً في هذا الروم!');
-        }
-
-        autoImageChannels.splice(index, 1);
-        saveAutoChannels();
-        return message.reply(`✅ تم إلغاء تفعيل الخط التلقائي من هذا الروم (<#${message.channel.id}>).`);
-    }
-
-    if (autoImageChannels.includes(message.channel.id)) {
-        try {
-            // استخدام رابط مباشر وصحيح للصورة بصيغة png
-            await message.channel.send({
-                files: [{
-                    attachment: 'https://media.discordapp.net/attachments/1544078337838817330/1551661010316689499/InShot_20260921_192118508-1.png',
-                    name: 'kusoofi.png'
-                }]
-            });
-        } catch (err) {
-            console.error('خطأ أثناء إرسال الصورة التلقائية:', err);
-        }
-    }
 
     if (message.member && message.member.roles.cache.has(REQUIRED_ROLE_ID)) {
         if (!statsData[userId]) statsData[userId] = { messages: 0, voiceMinutes: 0 };
@@ -287,7 +248,7 @@ client.on('messageCreate', async message => {
             await targetMember.roles.add(HIDDEN_ROLE_ID);
             return message.reply(`**___تم اعطاء <@${targetMember.id}> رتبة المخفية بنجاح ✓___**`);
         } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة (تأكد من صلاحيات البوت ومكانة رتبته).');
+            return message.reply('❌ حدث خطأ أثناء إعطاء الرتبة.');
         }
     }
 
@@ -296,8 +257,7 @@ client.on('messageCreate', async message => {
 
         try {
             await message.guild.members.fetch();
-            const targetRoleId = '1537274972597260379';
-            const membersWithRole = message.guild.members.cache.filter(member => member.roles.cache.has(targetRoleId));
+            const membersWithRole = message.guild.members.cache.filter(member => member.roles.cache.has(REQUIRED_ROLE_ID));
 
             if (membersWithRole.size === 0) {
                 return message.reply('❌ لا يوجد أي شخص يحمل هذه الرتبة حالياً في السيرفر.');
@@ -328,7 +288,7 @@ client.on('messageCreate', async message => {
         if (!ADMIN_IDS.includes(message.author.id)) return;
 
         const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فحصه! مثال: `id @الشخص`');
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد فحصه!');
         
         if (!targetMember.roles.cache.has(ID_COMMAND_TARGET_ROLE)) {
             return;
@@ -365,7 +325,7 @@ client.on('messageCreate', async message => {
                 return message.reply(`✅ تم تغيير لقب العضو <@${targetMember.id}> بنجاح إلى: **${newNickname}** ✓`);
             }
         } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء تعديل اللقب (تأكد من أن رتبة البوت أعلى من رتبة العضو المستهدف وأن لديه صلاحية تغيير الألقاب).');
+            return message.reply('❌ حدث خطأ أثناء تعديل اللقب.');
         }
     }
 
@@ -385,7 +345,6 @@ client.on('messageCreate', async message => {
             });
             return message.reply(`✅ تم دخول البوت إلى روم (<#${voiceChannel.id}>) بنجاح ✓`);
         } catch (err) {
-            console.error('خطأ أثناء إدخال البوت للفويس:', err);
             return message.reply('❌ حدث خطأ أثناء محاولة دخول البوت للصوت.');
         }
     }
@@ -402,7 +361,6 @@ client.on('messageCreate', async message => {
             connection.destroy();
             return message.reply('✅ تم إخراج البوت من الروم الصوتي بنجاح ✓');
         } catch (err) {
-            console.error('خطأ أثناء إخراج البوت من الفويس:', err);
             return message.reply('❌ حدث خطأ أثناء محاولة إخراج البوت من الفويس.');
         }
     }
@@ -417,8 +375,6 @@ client.on('messageCreate', async message => {
             const acceptanceMessage = 
                 `**___نبارك لك، ويسعدنا إعلامك بأنه تم قبول طلبك للانضمام إلى إدارة الكسوفي، وذلك بعد مراجعة وتقييم طلبك من قِبل الإدارة. 🎉\n\n` +
                 `نشكر لك اهتمامك وثقتك بنا، ونتمنى منك الالتزام بأنظمة وقوانين الإدارة، والتعاون مع أعضاء الفريق وتقديم أفضل ما لديك.\n\n` +
-                `كما نؤكد على أهمية التفاعل المستمر داخل الإدارة، والمشاركة في المهام والفعاليات، والحرص على أداء مسؤولياتك بالشكل المطلوب. فالتفاعل والالتزام من أهم أساسيات الاستمرار والتطور داخل الإدارة. 🤍\n\n` +
-                `نتمنى لك التوفيق والنجاح في مهامك الجديدة، ونرحب بك رسميًا ضمن فريق إدارة الكسوفي. ✨\n\n` +
                 `مع خالص تحيات وتقدير\n` +
                 `\`إدارة الكسوفي\`___**`;
 
@@ -439,8 +395,6 @@ client.on('messageCreate', async message => {
 
             const rejectionMessage = 
                 `**___نأسف لإعلامك بأنه تم رفض طلبك للانضمام إلى إدارة الكسوفي، وذلك بعد مراجعة وتقييم طلبك من قِبل الإدارة.\n\n` +
-                `نشكر لك اهتمامك ورغبتك في الانضمام إلى فريق إدارة الكسوفي، ونقدّر وقتك وجهدك المبذول في التقديم.\n\n` +
-                `نتمنى لك دوام التوفيق والنجاح، ونأمل أن تتاح لك فرصة أخرى للانضمام إلينا في المستقبل. 🤍\n\n` +
                 `مع خالص تحيات وتقدير\n` +
                 `\`إدارة الكسوفي\`___**`;
 
@@ -463,8 +417,6 @@ client.on('messageCreate', async message => {
 
             const dismissMessage = 
                 `**___نأسف لإعلامك بأنه تم فصلك من إدارة الكسوفي، وذلك بعد مراجعة وضعك من قِبل الإدارة واتخاذ القرار المناسب.\n\n` +
-                `يأتي هذا القرار نتيجة عدم الالتزام بالمهام والمسؤوليات المطلوبة، أو ضعف التفاعل والالتزام بأنظمة الإدارة.\n\n` +
-                `نشكر لك الفترة التي قضيتها معنا، ونقدّر ما قدمته خلال فترة تواجدك في الإدارة، ونتمنى لك التوفيق والنجاح في مسيرتك القادمة. 🤍\n\n` +
                 `مع خالص تحيات وتقدير\n` +
                 `\`إدارة الكسوفي\`___**`;
 
@@ -549,20 +501,6 @@ client.on('messageCreate', async message => {
         return message.reply(`تم الغاء التحذير عن العضو <@${targetMember.id}> بنجاح ✓\nعدد التحذيرات: \`${userWarns.length}\``);
     }
 
-    if (command === 'تحذيرات') {
-        if (!canManageWarnings(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
-        const targetMember = message.mentions.members.first() || message.member;
-        const userWarns = getWarnings(targetMember.id);
-
-        if (userWarns.length === 0) {
-            return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`0\``);
-        }
-
-        let warnsList = userWarns.map((w, index) => `> **#${index + 1}** | السبب: ${w.reason} (التاريخ: ${w.date})`).join('\n');
-
-        return message.reply(`عدد التحذيرات الذي يمتلكها <@${targetMember.id}> هي: \`${userWarns.length}\`\n\n**الأسباب:**\n${warnsList}`);
-    }
-
     if (command === 'تايم') {
         if (!canManageTimeout(message.member)) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
         const targetMember = message.mentions.members.first();
@@ -573,7 +511,7 @@ client.on('messageCreate', async message => {
 
         const match = timeArg.match(/^(\d+)([mhd])$/i);
         if (!match) {
-            return message.reply('❌ الصيغة خاطئة! يكتب الرقم متبوعاً بـ m للدقائق، h للساعات، أو d للأيام. (مثال: `10m`)');
+            return message.reply('❌ الصيغة خاطئة! يكتب الرقم متبوعاً بـ m للدقائق، h للساعات، أو d للأيام.');
         }
 
         const value = parseInt(match[1]);
@@ -596,7 +534,7 @@ client.on('messageCreate', async message => {
             await targetMember.timeout(durationMs, `بواسطة: ${message.author.tag}`);
             return message.reply(`تم اعطاء تايم ل العضو <@${targetMember.id}> لمدة \`${displayTime}\` بنجاح✓`);
         } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء إعطاء التايم (تأكد من رتبة البوت وأن صلاحياته أعلى من العضو).');
+            return message.reply('❌ حدث خطأ أثناء إعطاء التايم.');
         }
     }
 
@@ -622,7 +560,7 @@ client.on('messageCreate', async message => {
             await targetMember.kick(`بواسطة المشرف: ${message.author.tag}`);
             return message.reply(`يلا برا مع الباب <@${targetMember.id}>`);
         } catch (err) {
-            return message.reply('❌ حدث خطأ أثناء محاولة طرد العضو (تأكد من صلاحيات البوت).');
+            return message.reply('❌ حدث خطأ أثناء محاولة طرد العضو.');
         }
     }
 
