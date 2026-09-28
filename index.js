@@ -703,4 +703,179 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     }
 });
 
+    // مرتبة من الأضعف للأقوى
+    const RANK_HIERARCHY = [
+        '1537274972597260379', '1537274242909868085', '1537275238885359636', '1537275451209158656',
+        '1537275663503855696', '1537276083907465337', '1537276300404985896', '1537276853658718229',
+        '1537277669492920460', '1537278347120214138', '1537279054724595794', '1537282990672187522',
+        '1537283287318274188', '1537283780497113181', '1537287444943339560', '1537287340131614791',
+        '1537287147567194132', '1537287030571147264', '1537286917098573855', '1537286787746111518',
+        '1537286692820619274', '1537286574994362398', '1537286410065678428', '1537286276146004090',
+        '1537286158935920801', '1537286049108205728', '1537285923971010670', '153728572288795451',
+        '1537285604570824815', '1537285461666431077', '1537285297220485230', '1537285183953440900',
+        '1537285070883258379', '1537284815727099985', '1537284679127015504', '1537284582611882075',
+        '1537468075379523654', '1537284292189626458', '1537283268796354590', '1537283064965627995',
+        '1537282925115088906', '1537282688560533654', '1537282379293663373', '1537282219062730752',
+        '1537281951705211010', '1537281806586478652', '1537281536498606150', '1537281235951419434',
+        '1537279895011459153', '1537280175509872640', '1537279625707782265', '1537279087389843467',
+        '1537278719553568768', '1537278304338321528', '1537277782487203940', '1552477957635702814',
+        '1552477706996682853', '1552478857771221053', '1552480135385452645', '1552480171133771796',
+        '1552480238691426424', '1552480275370610690', '1552480327019274291', '1552480375421538486',
+        '1552480389250031676'
+    ];
+
+    // أمر قفل الروم (ق)
+    if (command === 'ق') {
+        const canLock = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1551588105750847558');
+        if (!canLock) return;
+
+        const everyoneRole = message.guild.roles.everyone;
+        const currentPerms = message.channel.permissionsFor(everyoneRole);
+        
+        if (currentPerms && !currentPerms.has('SendMessages')) {
+            return message.reply('**___هذا الروم مقفول بالفعل___**');
+        }
+
+        try {
+            await message.channel.permissionOverwrites.edit(everyoneRole, { SendMessages: false });
+            return message.reply(`**___تم قفل الروم بواسطة <@${userId}> بنجاح✓___**`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء قفل الروم.');
+        }
+    }
+
+    // أمر فتح الروم (ف)
+    if (command === 'ف') {
+        const canUnlock = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1551588105750847558');
+        if (!canUnlock) return;
+
+        const everyoneRole = message.guild.roles.everyone;
+        const currentPerms = message.channel.permissionsFor(everyoneRole);
+        
+        if (currentPerms && currentPerms.has('SendMessages')) {
+            return message.reply('**___هذا الروم مفتوح بالفعل___**');
+        }
+
+        try {
+            await message.channel.permissionOverwrites.edit(everyoneRole, { SendMessages: null });
+            return message.reply(`**___تم فتح الروم بواسطة <@${userId}> بنجاح✓___**`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء فتح الروم.');
+        }
+    }
+
+    // أمر تف
+    if (command === 'تف') {
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
+        return message.channel.send(`**___ختفووووووووووووووو <@${targetMember.id}>___**`);
+    }
+
+    // أمر ترقية
+    if (command === 'ترقية') {
+        const canPromote = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1543460225208549416');
+        if (!canPromote) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن العضو المراد ترقيته!');
+
+        let currentRoleIndex = -1;
+        let currentRoleId = '';
+        for (let i = 0; i < RANK_HIERARCHY.length; i++) {
+            if (targetMember.roles.cache.has(RANK_HIERARCHY[i])) {
+                currentRoleIndex = i;
+                currentRoleId = RANK_HIERARCHY[i];
+                break;
+            }
+        }
+
+        if (currentRoleIndex === -1 || currentRoleIndex >= RANK_HIERARCHY.length - 1) {
+            return message.reply('❌ العضو لا يحمل رتبة إدارية مسجلة أو أنه في أعلى رتبة بالفعل.');
+        }
+
+        const nextRoleId = RANK_HIERARCHY[currentRoleIndex + 1];
+
+        try {
+            await targetMember.roles.remove(currentRoleId);
+            await targetMember.roles.add(nextRoleId);
+
+            return message.channel.send(
+                `**___تمت ترقية الاداري <@${targetMember.id}>\n\n` +
+                `من رتبة <@&${currentRoleId}>\n\n` +
+                `الى رتبة <@&${nextRoleId}>\n\n` +
+                `بنجاح✓___**`
+            );
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء عملية الترقية.');
+        }
+    }
+
+    // أمر تخفيض
+    if (command === 'تخفيض') {
+        const canDemote = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1543460225208549416');
+        if (!canDemote) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
+
+        const targetMember = message.mentions.members.first();
+        if (!targetMember) return message.reply('❌ يرجى منشن العضو المراد تخفيض رتبته!');
+
+        let currentRoleIndex = -1;
+        let currentRoleId = '';
+        for (let i = 0; i < RANK_HIERARCHY.length; i++) {
+            if (targetMember.roles.cache.has(RANK_HIERARCHY[i])) {
+                currentRoleIndex = i;
+                currentRoleId = RANK_HIERARCHY[i];
+                break;
+            }
+        }
+
+        if (currentRoleIndex <= 0) {
+            return message.reply('❌ العضو في أدنى رتبة بالفعل أو لا يحمل رتبة إدارية.');
+        }
+
+        const prevRoleId = RANK_HIERARCHY[currentRoleIndex - 1];
+
+        try {
+            await targetMember.roles.remove(currentRoleId);
+            await targetMember.roles.add(prevRoleId);
+
+            return message.channel.send(
+                `**___تم تخفيض الاداري <@${targetMember.id}>\n\n` +
+                `من رتبة <@&${currentRoleId}>\n\n` +
+                `الى رتبة <@&${prevRoleId}>\n\n` +
+                `بنجاح✓___**`
+            );
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء عملية التخفيض.');
+        }
+    }
+
+    // أمر البان (لك ولصديقك فقط)
+    if (command === 'بان' || command === 'ban') {
+        if (!ADMIN_IDS.includes(userId)) return;
+        const targetMember = message.mentions.members.first();
+        const reason = args.slice(2).join(' ') || 'بدون سبب';
+        if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد تبنيده!');
+
+        try {
+            await targetMember.ban({ reason });
+            return message.reply(`✅ تم تبنيد العضو <@${targetMember.id}> بنجاح ✓`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء محاولة حظر العضو.');
+        }
+    }
+
+    // أمر فك البان (لك ولصديقك فقط)
+    if (command === 'فك-بان' || command === 'unban') {
+        if (!ADMIN_IDS.includes(userId)) return;
+        const targetId = args[1];
+        if (!targetId) return message.reply('❌ يرجى كتابة أيدي الشخص المراد فك الحظر عنه!');
+
+        try {
+            await message.guild.members.unban(targetId);
+            return message.reply(`✅ تم فك الحظر عن العضو بمعرف \`${targetId}\` بنجاح ✓`);
+        } catch (err) {
+            return message.reply('❌ حدث خطأ أثناء محاولة فك الحظر، تأكد من صحة الأيدي.');
+        }
+    }
+
 client.login(process.env.TOKEN);
