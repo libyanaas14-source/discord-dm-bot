@@ -703,6 +703,13 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     }
 });
 
+client.on('messageCreate', async (message) => {
+    if (message.author.bot || !message.guild) return;
+
+    const args = message.content.trim().split(/ +/);
+    const command = args[0];
+    const userId = message.author.id;
+
     // مرتبة من الأضعف للأقوى
     const RANK_HIERARCHY = [
         '1537274972597260379', '1537274242909868085', '1537275238885359636', '1537275451209158656',
@@ -726,7 +733,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
     // أمر قفل الروم (ق)
     if (command === 'ق') {
-        const canLock = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1551588105750847558');
+        const canLock = (typeof ADMIN_IDS !== 'undefined' && ADMIN_IDS.includes(userId)) || message.member.roles.cache.has('1551588105750847558');
         if (!canLock) return;
 
         const everyoneRole = message.guild.roles.everyone;
@@ -746,7 +753,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
     // أمر فتح الروم (ف)
     if (command === 'ف') {
-        const canUnlock = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1551588105750847558');
+        const canUnlock = (typeof ADMIN_IDS !== 'undefined' && ADMIN_IDS.includes(userId)) || message.member.roles.cache.has('1551588105750847558');
         if (!canUnlock) return;
 
         const everyoneRole = message.guild.roles.everyone;
@@ -773,7 +780,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
     // أمر ترقية
     if (command === 'ترقية') {
-        const canPromote = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1543460225208549416');
+        const canPromote = (typeof ADMIN_IDS !== 'undefined' && ADMIN_IDS.includes(userId)) || message.member.roles.cache.has('1543460225208549416');
         if (!canPromote) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
 
         const targetMember = message.mentions.members.first();
@@ -812,7 +819,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
     // أمر تخفيض
     if (command === 'تخفيض') {
-        const canDemote = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1543460225208549416');
+        const canDemote = (typeof ADMIN_IDS !== 'undefined' && ADMIN_IDS.includes(userId)) || message.member.roles.cache.has('1543460225208549416');
         if (!canDemote) return message.reply('❌ ليس لديك صلاحية لاستخدام هذا الأمر.');
 
         const targetMember = message.mentions.members.first();
@@ -849,11 +856,11 @@ client.on('voiceStateUpdate', (oldState, newState) => {
         }
     }
 
-    // أمر البان (لك ولصديقك فقط)
+    // أمر بان
     if (command === 'بان' || command === 'ban') {
-        if (!ADMIN_IDS.includes(userId)) return;
+        if (typeof ADMIN_IDS !== 'undefined' && !ADMIN_IDS.includes(userId)) return;
         const targetMember = message.mentions.members.first();
-        const reason = args.slice(2).join(' ') || 'بدون سبب';
+        const reason = args.slice(1).join(' ') || 'بدون سبب';
         if (!targetMember) return message.reply('❌ يرجى منشن الشخص المراد تبنيده!');
 
         try {
@@ -864,9 +871,9 @@ client.on('voiceStateUpdate', (oldState, newState) => {
         }
     }
 
-    // أمر فك البان (لك ولصديقك فقط)
+    // أمر فك-بان
     if (command === 'فك-بان' || command === 'unban') {
-        if (!ADMIN_IDS.includes(userId)) return;
+        if (typeof ADMIN_IDS !== 'undefined' && !ADMIN_IDS.includes(userId)) return;
         const targetId = args[1];
         if (!targetId) return message.reply('❌ يرجى كتابة أيدي الشخص المراد فك الحظر عنه!');
 
@@ -877,5 +884,6 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             return message.reply('❌ حدث خطأ أثناء محاولة فك الحظر، تأكد من صحة الأيدي.');
         }
     }
+});
 
 client.login(process.env.TOKEN);
