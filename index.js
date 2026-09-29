@@ -884,11 +884,9 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ حدث خطأ أثناء محاولة فك الحظر، تأكد من صحة الأيدي.');
         }
     }
-});
-
-    // أمر عرض التحذيرات (تحذيرات / warns) - مخصص لحاملين الرتبة المحددة
+    // أمر عرض التحذيرات (تحذيرات / warns)
     if (command === 'تحذيرات' || command === 'warns') {
-        const canViewWarns = (typeof ADMIN_IDS !== 'undefined' && ADMIN_IDS.includes(userId)) || message.member.roles.cache.has('1537274972597260379');
+        const canViewWarns = ADMIN_IDS.includes(userId) || message.member.roles.cache.has('1537274972597260379');
         if (!canViewWarns) return message.reply('❌ ليس لديك صلاحية لاستخدام أمر التحذيرات.');
 
         const targetMember = message.mentions.members.first() || message.member;
@@ -912,5 +910,7 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ حدث خطأ أثناء جلب التحذيرات من قاعدة البيانات.');
         }
     }
+    
+});
 
 client.login(process.env.TOKEN);
