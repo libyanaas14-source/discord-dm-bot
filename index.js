@@ -771,13 +771,6 @@ client.on('messageCreate', async (message) => {
         }
     }
 
-    // أمر تف
-    if (command === 'تف') {
-        const targetMember = message.mentions.members.first();
-        if (!targetMember) return message.reply('❌ يرجى منشن الشخص!');
-        return message.channel.send(`**___ختفووووووووووووووو <@${targetMember.id}>___**`);
-    }
-
     // أمر ترقية
     if (command === 'ترقية') {
         const canPromote = (typeof ADMIN_IDS !== 'undefined' && ADMIN_IDS.includes(userId)) || message.member.roles.cache.has('1543460225208549416');
@@ -892,12 +885,14 @@ client.on('messageCreate', async (message) => {
         const targetMember = message.mentions.members.first() || message.member;
 
         try {
+            // البحث عن التحذيرات باستخدام الأيدي الصحيح للعضو والسيرفر
             const warnsData = await WarnsModel.find({ userId: targetMember.id, guildId: message.guild.id });
 
             if (!warnsData || warnsData.length === 0) {
                 return message.reply(`✅ العضو <@${targetMember.id}> ليس لديه أي تحذيرات مسجلة.`);
             }
 
+            // ترتيب وعرض قائمة التحذيرات بشكل أنيق
             let warnsList = warnsData.map((w, index) => `**${index + 1}-** السبب: \`${w.reason || 'بدون سبب'}\``).join('\n');
 
             return message.channel.send(
@@ -906,7 +901,7 @@ client.on('messageCreate', async (message) => {
                 `${warnsList}___**`
             );
         } catch (err) {
-            console.error(err);
+            console.error("خطأ في أمر التحذيرات:", err);
             return message.reply('❌ حدث خطأ أثناء جلب التحذيرات من قاعدة البيانات.');
         }
     }
