@@ -886,4 +886,30 @@ client.on('messageCreate', async (message) => {
     }
 });
 
+    // أمر عرض التحذيرات (تحذيرات / warns)
+    if (command === 'تحذيرات' || command === 'warns') {
+        const targetMember = message.mentions.members.first() || message.member;
+
+        try {
+            // نفترض أنك مخزن التحذيرات في مجموعة MongoDB بهذا الشكل أو تعدل اسم الـ Model حسب اللي عندك
+            // إذا كنت تستخدم نموذج مختلف، اعطيني شكله عشان أطابقه لك بدقة
+            const warnsData = await WarnsModel.find({ userId: targetMember.id, guildId: message.guild.id });
+
+            if (!warnsData || warnsData.length === 0) {
+                return message.reply(`✅ العضو <@${targetMember.id}> ليس لديه أي تحذيرات مسجلة.`);
+            }
+
+            let warnsList = warnsData.map((w, index) => `**${index + 1}-** السبب: \`${w.reason || 'بدون سبب'}\``).join('\n');
+
+            return message.channel.send(
+                `**___قائمة تحذيرات العضو <@${targetMember.id}>\n\n` +
+                `عدد التحذيرات الكلي: (${warnsData.length})\n\n` +
+                `${warnsList}___**`
+            );
+        } catch (err) {
+            console.error(err);
+            return message.reply('❌ حدث خطأ أثناء جلب التحذيرات من قاعدة البيانات.');
+        }
+    }
+
 client.login(process.env.TOKEN);
