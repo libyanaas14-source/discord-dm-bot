@@ -912,40 +912,6 @@ client.on('messageCreate', async (message) => {
         if (!ADMIN_IDS.includes(userId)) {
             return message.reply('❌ هذا الأمر مخصص للإدارة العليا فقط.');
         }
-
-        // args[0] راح تكون كلمة ticket، فنحن ناخذ الباقي بعده
-        // الطريقة المتوقعة للكتابة: setup ticket | الكاتجوري_ايدي | رتبة_الإدارة (منشن) | النص المخصص
-        const query = args.slice(1).join(' ');
-        const parts = query.split('|').map(p => p.trim());
-
-        const categoryId = parts[0]; // أيدي الكاتجوري
-        const supportRole = message.mentions.roles.first(); // رتبة الإدارة الممنشنة
-        const customText = parts.slice(2).join(' ') || 'لفتح تكت جديدة ومساعدة الإدارة، اضغط على الزر أدناه 👇';
-
-        if (!categoryId || !supportRole) {
-            return message.reply('❌ الاستخدام الصحيح:\n`setup ticket | <ID_الكاتجوري> | @الرتبة | النص اللي تبيه يظهر`');
-        }
-
-        const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-
-        // إرسال رسالة لوحة التكتات في الروم الحالي مع النص المخصص
-        const embed = new EmbedBuilder()
-            .setTitle('🎫 نظام الدعم الفني والتكتات')
-            .setDescription(customText)
-            .setColor('#2b2d31')
-            .setFooter({ text: 'SYSTEM AL-KSOFI' });
-
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId(`create_ticket_${categoryId}_${supportRole.id}`)
-                .setLabel('فتح تكت 🎫')
-                .setStyle(ButtonStyle.Primary)
-        );
-
-        // حذف رسالة الأمر ثم إرسال اللوحة
-        await message.delete().catch(() => {});
-        return message.channel.send({ embeds: [embed], components: [row] });
-    }
     // حدث الضغط على زر فتح التكت
     if (interaction.isButton() && interaction.customId.startsWith('create_ticket_')) {
         const parts = interaction.customId.split('_');
@@ -979,7 +945,7 @@ client.on('messageCreate', async (message) => {
             });
 
             // إرسال رسالة ترحيبية داخل روم التكت الجديد مع زر الإغلاق
-            const embed = new EmbedBuilder`
+            const embed = new EmbedBuilder()
                 .setTitle('🎫 تكت جديدة')
                 .setDescription(`مرحباً بك ${interaction.user}\nالإدارة ستتولى أمرك قريباً. يرجى كتابة مشكلتك بالتفصيل.`)
                 .setColor('#2b2d31');
@@ -999,7 +965,7 @@ client.on('messageCreate', async (message) => {
             return interaction.editReply({ content: '❌ حدث خطأ أثناء إنشاء روم التكت، تأكد من صلاحيات البوت وأيدي الكاتجوري.' });
         }
     }
-    
+        
 });
 
 client.login(process.env.TOKEN);
