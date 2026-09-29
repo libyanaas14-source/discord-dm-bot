@@ -946,6 +946,59 @@ client.on('messageCreate', async (message) => {
         await message.delete().catch(() => {});
         return message.channel.send({ embeds: [embed], components: [row] });
     }
+    // حدث الضغط على زر فتح التكت
+    if (interaction.isButton() && interaction.customId.startsWith('create_ticket_')) {
+        const parts = interaction.customId.split('_');
+        const categoryId = parts[2];
+        const supportRoleId = parts[3];
+
+        const { ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+        await interaction.deferReply({ ephemeral: true });
+
+        try {
+            // إنشاء روم التكت الجديد داخل الكاتجوري المحدد
+            const ticketChannel = await interaction.guild.channels.create({
+                name: `ticket-${interaction.user.username}`,
+                type: ChannelType.GuildText,
+                parent: categoryId,
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.id,
+                        deny: [PermissionFlagsBits.ViewChannel],
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
+                    {
+                        id: supportRoleId,
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
+                ],
+            });
+
+            // إرسال رسالة ترحيبية داخل روم التكت الجديد مع زر الإغلاق
+            const embed = new EmbedBuilder`
+                .setTitle('🎫 تكت جديدة')
+                .setDescription(`مرحباً بك ${interaction.user}\nالإدارة ستتولى أمرك قريباً. يرجى كتابة مشكلتك بالتفصيل.`)
+                .setColor('#2b2d31');
+
+            const closeRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('close_ticket')
+                    .setLabel('إغلاق التكت 🔒')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
+            await ticketChannel.send({ content: `<@&${supportRoleId}> ${interaction.user}`, embeds: [embed], components: [closeRow] });
+
+            return interaction.editReply({ content: `✅ تم إنشاء تكت الخاص بك بنجاح: ${ticketChannel}` });
+        } catch (err) {
+            console.error("خطأ في إنشاء التكت:", err);
+            return interaction.editReply({ content: '❌ حدث خطأ أثناء إنشاء روم التكت، تأكد من صلاحيات البوت وأيدي الكاتجوري.' });
+        }
+    }
     
 });
 
