@@ -886,13 +886,14 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-    // أمر عرض التحذيرات (تحذيرات / warns)
+    // أمر عرض التحذيرات (تحذيرات / warns) - مخصص لحاملين الرتبة المحددة
     if (command === 'تحذيرات' || command === 'warns') {
+        const canViewWarns = (typeof ADMIN_IDS !== 'undefined' && ADMIN_IDS.includes(userId)) || message.member.roles.cache.has('1537274972597260379');
+        if (!canViewWarns) return message.reply('❌ ليس لديك صلاحية لاستخدام أمر التحذيرات.');
+
         const targetMember = message.mentions.members.first() || message.member;
 
         try {
-            // نفترض أنك مخزن التحذيرات في مجموعة MongoDB بهذا الشكل أو تعدل اسم الـ Model حسب اللي عندك
-            // إذا كنت تستخدم نموذج مختلف، اعطيني شكله عشان أطابقه لك بدقة
             const warnsData = await WarnsModel.find({ userId: targetMember.id, guildId: message.guild.id });
 
             if (!warnsData || warnsData.length === 0) {
