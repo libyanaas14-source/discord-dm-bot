@@ -885,24 +885,23 @@ client.on('messageCreate', async (message) => {
         const targetMember = message.mentions.members.first() || message.member;
 
         try {
-            // البحث عن التحذيرات باستخدام الأيدي الصحيح للعضو والسيرفر
-            const warnsData = await WarnsModel.find({ userId: targetMember.id, guildId: message.guild.id });
+            // جلب البيانات من مصفوفة warningsData أو ملف warnings.json
+            const userWarns = (warningsData && warningsData[targetMember.id]) || [];
 
-            if (!warnsData || warnsData.length === 0) {
+            if (!userWarns || userWarns.length === 0) {
                 return message.reply(`✅ العضو <@${targetMember.id}> ليس لديه أي تحذيرات مسجلة.`);
             }
 
-            // ترتيب وعرض قائمة التحذيرات بشكل أنيق
-            let warnsList = warnsData.map((w, index) => `**${index + 1}-** السبب: \`${w.reason || 'بدون سبب'}\``).join('\n');
+            let warnsList = userWarns.map((w, index) => `**${index + 1}-** السبب: \`${w.reason || 'بدون سبب'}\``).join('\n');
 
             return message.channel.send(
                 `**___قائمة تحذيرات العضو <@${targetMember.id}>\n\n` +
-                `عدد التحذيرات الكلي: (${warnsData.length})\n\n` +
+                `عدد التحذيرات الكلي: (${userWarns.length})\n\n` +
                 `${warnsList}___**`
             );
         } catch (err) {
             console.error("خطأ في أمر التحذيرات:", err);
-            return message.reply('❌ حدث خطأ أثناء جلب التحذيرات من قاعدة البيانات.');
+            return message.reply('❌ حدث خطأ أثناء جلب التحذيرات.');
         }
     }
     
