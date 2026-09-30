@@ -904,7 +904,65 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ حدث خطأ أثناء جلب التحذيرات.');
         }
     }
+const JAIL_ROLE_ID = 'ضع_ايدي_رتبة_السجن_هنا'; 
+const JAIL_COMMAND_ROLE = '1535139464702066788';
 
+if (command === 'سجن') {
+    if (!message.member.roles.cache.has(JAIL_COMMAND_ROLE) && !ADMIN_IDS.includes(message.author.id)) {
+        return message.reply('ههه ماتقدر تسوي الامر يحب');
+    }
+
+    const targetMember = message.mentions.members.first();
+    if (!targetMember) return message.reply('يرجى منشن الشخص المراد سجنه');
+    if (targetMember.id === message.author.id) return message.reply('لايمكنك سجن نفسك');
+
+    try {
+        const userRoles = targetMember.roles.cache.filter(role => role.id !== message.guild.id && !role.managed).map(role => role.id);
+        channelPermsBackup[targetMember.id] = userRoles;
+        savePermsBackup(); 
+
+        if (userRoles.length > 0) {
+            await targetMember.roles.remove(userRoles);
+        }
+        
+        await targetMember.roles.add(JAIL_ROLE_ID);
+
+        return message.reply(`تم سجن <@${targetMember.id}> واخفاء الرومات عليه بنجاح✓`);
+    } catch (err) {
+        console.error('خطأ في أمر السجن:', err);
+        return message.reply('❌ حدث خطأ! تأكد أن رتبة البوت أعلى من رتبة العضو المراد سجنه، وأنه يمتلك صلاحية Manage Roles.');
+    }
+}
+
+if (command === 'فك' && args[1] === 'سجن') {
+    if (!message.member.roles.cache.has(JAIL_COMMAND_ROLE) && !ADMIN_IDS.includes(message.author.id)) {
+        return message.reply('ههه ماتقدر تسوي الامر يحب');
+    }
+
+    const targetMember = message.mentions.members.first();
+    if (!targetMember) return message.reply('يرجى منشن الشخص المراد فك سجنه');
+
+    const storedRoles = channelPermsBackup[targetMember.id];
+    
+    try {
+        await targetMember.roles.remove(JAIL_ROLE_ID).catch(() => {});
+
+        if (!storedRoles || storedRoles.length === 0) {
+            return message.reply(`✅ تم إزالة رتبة السجن عن <@${targetMember.id}>.`);
+        }
+
+        await targetMember.roles.add(storedRoles);
+
+        delete channelPermsBackup[targetMember.id];
+        savePermsBackup();
+
+        return message.reply(`✅ تم فك سجن العضو <@${targetMember.id}> وإرجاع رتبه السابقة والرومات له بنجاح ✓`);
+    } catch (err) {
+        console.error('خطأ في أمر فك السجن:', err);
+        return message.reply('❌ حدث خطأ أثناء محاولة إرجاع رتب العضو.');
+    }
+}
+    
 });
 
 client.login(process.env.TOKEN);
