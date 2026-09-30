@@ -904,61 +904,7 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ حدث خطأ أثناء جلب التحذيرات.');
         }
     }
-// ضع هذا المتغير في أعلى الكود مع باقي المتغيرات العامة (خارج الأحداث)
-const spamTracker = new Map();
 
-// ضع هذا الكود داخل حدث client.on('messageCreate', async message => { ... } 
-// يُفضل وضعه في البداية بعد التحقق من أن الرسالة ليست من البوت
-if (message.author.bot || !message.guild) return;
-
-// نظام الحماية من التكرار (يستثني الإدارة)
-if (!ADMIN_IDS.includes(message.author.id)) {
-    const userId = message.author.id;
-    const content = message.content.trim();
-    
-    // جلب بيانات العضو أو إنشاء بيانات جديدة
-    const userData = spamTracker.get(userId) || { count: 0, content: '', messages: [] };
-
-    if (userData.content === content) {
-        userData.count += 1;
-        userData.messages.push(message);
-    } else {
-        userData.count = 1;
-        userData.content = content;
-        userData.messages = [message];
-    }
-
-    spamTracker.set(userId, userData);
-
-    // إعادة تعيين التتبع بعد 10 ثوانٍ إذا لم يكمل 3 رسائل
-    setTimeout(() => {
-        const currentData = spamTracker.get(userId);
-        if (currentData && currentData.count < 3) {
-            spamTracker.delete(userId);
-        }
-    }, 10000);
-
-    // إذا كرر الرسالة 3 مرات
-    if (userData.count === 3) {
-        spamTracker.delete(userId); // تصفير العداد
-
-        try {
-            // حذف الرسائل الثلاثة
-            await message.channel.bulkDelete(userData.messages).catch(() => {});
-            
-            // إعطاء تايم أوت 3 دقائق (3 * 60 * 1000)
-            if (message.member.moderatable) {
-                await message.member.timeout(180000, 'تكرار نفس الرسالة 3 مرات (Spam)');
-            }
-            
-            // الرد على العضو
-            return message.channel.send(`<@${userId}> أهدأ من فضلك...♥️`);
-        } catch (err) {
-            console.error('خطأ في نظام الحماية من التكرار:', err);
-        }
-    }
-}
-    
 });
 
 client.login(process.env.TOKEN);
