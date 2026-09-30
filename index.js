@@ -914,7 +914,25 @@ if (message.content.trim() === '.')
     return message.reply('**___النَّاس تِسَوْلِف، وَإِنْتَ جَاي تِنَقِّط؟ 😂___**');
 
 if (message.content.trim() === 'بروح')
-    return message.reply('**___بِنْشْتَاقْلَكْكْكْكْ___**');
-});
+    return message.reply('**___بِنْشْتَاقْلَكْكْكْكْ___**'); 
+    if (command === 'تف') {
+    if (!message.member.roles.cache.has('1535139464702066788')) return;
+
+    const targetMember = message.mentions.members.first();
+
+    if (!targetMember) {
+        return message.reply('❌ منشن الشخص اللي تبي تبنده!');
+    }
+
+    try {
+        await targetMember.ban({
+            reason: `تم التبنيد بواسطة ${message.author.tag}`
+        });
+
+        return message.reply(`**___ختفوووووووو <@${targetMember.id}>___**`);
+    } catch (err) {
+        return message.reply('❌ ماقدرتش نبند الشخص، تأكد إن رتبة البوت أعلى من رتبته.');
+    }
+}
 
 client.login(process.env.TOKEN);
