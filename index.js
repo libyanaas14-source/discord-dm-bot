@@ -904,21 +904,17 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ حدث خطأ أثناء جلب التحذيرات.');
         }
     }
-const content = message.content.trim();
+if (['السلام عليكم', 'سلام عليكم', 'سمو عليكوا', 'سموا عليكوا'].includes(message.content.trim()))
+    return message.reply('**___وَعَلَيْكُمُ السَّلَامُ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ___**');
 
-if (content === 'السلام عليكم') {
-    return message.reply('وَعَلَيْكُمُ السَّلَامُ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ');
-}
+if (message.content.trim() === 'باك')
+    return message.reply('**___وَلَكُمْ، نَوَّرْتَ السِّرْفَرَ 🤍___**\n\n-# تَرَى اشْتَقْنَا لَكَ');
 
-if (content === 'باك') {
-    return message.reply(
-        'وَلَكُمْ، نَوَّرْتَ السِّرْفَرَ 🤍\n\n-# تَرَى اشْتَقْنَا لَكَ'
-    );
-}
+if (message.content.trim() === '.')
+    return message.reply('**___النَّاس تِسَوْلِف، وَإِنْتَ جَاي تِنَقِّط؟ 😂___**');
 
-if (content === '.') {
-    return message.reply('النَّاس تِسَوْلِف، وَإِنْتَ جَاي تِنَقِّط؟ 😂');
-}
+if (message.content.trim() === 'بروح')
+    return message.reply('**___بِنْشْتَاقْلَكْكْكْكْ___**');
 });
 
 client.login(process.env.TOKEN);
