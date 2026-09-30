@@ -1025,6 +1025,30 @@ ${message.author}
 ___**`
   );
     }
+    if (message.content.startsWith('حذف')) {
+  const args = message.content.trim().split(/\s+/);
+  const amount = parseInt(args[1]);
+
+  // الرتبة المسموح لها باستخدام الأمر
+  if (!message.member.roles.cache.has('1543459842595889203')) {
+    return;
+  }
+
+  if (!amount || amount < 1 || amount > 100) {
+    return message.reply('❌ اكتب عدد من 1 إلى 100.\nمثال: `حذف 20`');
+  }
+
+  const reply = await message.reply('**جاري حذف الرسايل...**');
+
+  try {
+    await message.channel.bulkDelete(amount, true);
+
+    await reply.edit('**تم حذف الرسايل بنجاح ✓**');
+  } catch (error) {
+    console.error(error);
+    await reply.edit('❌ **صار خطأ أثناء حذف الرسايل.**');
+  }
+    }
 });
 
 client.login(process.env.TOKEN);
