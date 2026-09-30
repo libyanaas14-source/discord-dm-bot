@@ -949,6 +949,82 @@ if (message.content.trim() === 'بروح')
     message.reply('❌ صار خطأ أثناء التبند.');
   }
     }
+    if (message.content.startsWith('مراقبة')) {
+  if (!message.member.roles.cache.has('1537274972597260379')) {
+    return;
+  }
+
+  const targetMember = message.mentions.members.first();
+
+  if (!targetMember) {
+    return message.reply('❌ منشن العضو اللي تبي مراقبته.');
+  }
+
+  const warningCount = (warningsData && warningsData[targetMember.id])
+  ? warningsData[targetMember.id].length
+  : 0;
+
+  const joinedAt = targetMember.joinedTimestamp;
+  const durationSeconds = joinedAt
+    ? Math.floor((Date.now() - joinedAt) / 1000)
+    : 0;
+
+  const days = Math.floor(durationSeconds / 86400);
+  const hours = Math.floor((durationSeconds % 86400) / 3600);
+  const minutes = Math.floor((durationSeconds % 3600) / 60);
+  const seconds = durationSeconds % 60;
+
+  const durationText =
+    `${days} يوم، ${hours} ساعة، ${minutes} دقيقة، ${seconds} ثانية`;
+
+  const roles = targetMember.roles.cache
+    .filter(role => role.id !== message.guild.id)
+    .map(role => role.toString())
+    .join(' ') || 'لا يمتلك رتب';
+
+  const joinedDate = targetMember.joinedAt
+    ? `<t:${Math.floor(targetMember.joinedTimestamp / 1000)}:F>`
+    : 'غير معروف';
+
+  const accountDate =
+    `<t:${Math.floor(targetMember.user.createdTimestamp / 1000)}:F>`;
+
+  const status = targetMember.presence?.status || 'غير متصل';
+
+  return message.channel.send(
+`**___جاري مراقبة الشخص...
+
+عدد التحذيرات التي يملكها: \`${warningCount}\`
+
+مدة تواجده في السيرفر: \`${durationText}\`
+
+تاريخ تسجيل دخوله في السيرفر:
+${joinedDate}
+
+الرتب التي يمتلكها:
+${roles}
+
+منشن العضو:
+${targetMember}
+
+يوزر العضو:
+\`${targetMember.user.username}\`
+
+ID العضو:
+\`${targetMember.id}\`
+
+تاريخ إنشاء حسابه:
+${accountDate}
+
+حالته:
+\`${status}\`
+
+تم استخدام أمر المراقبة بواسطة:
+${message.author}
+
+___**`
+  );
+    }
 });
 
 client.login(process.env.TOKEN);
