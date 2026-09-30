@@ -933,6 +933,7 @@ if (message.content.trim() === 'بروح')
     } catch (err) {
         return message.reply('❌ ماقدرتش نبند الشخص، تأكد إن رتبة البوت أعلى من رتبته.');
     }
-}
+    }
+});
 
 client.login(process.env.TOKEN);
