@@ -904,7 +904,21 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ حدث خطأ أثناء جلب التحذيرات.');
         }
     }
+const content = message.content.trim();
 
+if (content === 'السلام عليكم') {
+    return message.reply('وَعَلَيْكُمُ السَّلَامُ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ');
+}
+
+if (content === 'باك') {
+    return message.reply(
+        'وَلَكُمْ، نَوَّرْتَ السِّرْفَرَ 🤍\n\n-# تَرَى اشْتَقْنَا لَكَ'
+    );
+}
+
+if (content === '.') {
+    return message.reply('النَّاس تِسَوْلِف، وَإِنْتَ جَاي تِنَقِّط؟ 😂');
+}
 });
 
 client.login(process.env.TOKEN);
