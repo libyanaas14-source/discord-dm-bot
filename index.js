@@ -1671,9 +1671,10 @@ client.on('interactionCreate', async interaction => {
 
         return interaction.reply(
             `✅ تمت إضافة ${member} إلى التكت ويمكنه الآن رؤية التكت والكتابة فيه.`
-        );
+            );
+
     }
-    
 });
+
 
 client.login(process.env.TOKEN);
