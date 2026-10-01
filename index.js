@@ -1025,30 +1025,655 @@ ${message.author}
 ___**`
   );
     }
-    if (message.content.startsWith('حذف')) {
-  const args = message.content.trim().split(/\s+/);
-  const amount = parseInt(args[1]);
+// ===============================
+// 🎫 نظام التكتات
+// ===============================
 
-  // الرتبة المسموح لها باستخدام الأمر
-  if (!message.member.roles.cache.has('1543459842595889203')) {
-    return;
-  }
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    EmbedBuilder,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    PermissionFlagsBits,
+    ChannelType
+} = require('discord.js');
 
-  if (!amount || amount < 1 || amount > 100) {
-    return message.reply('❌ اكتب عدد من 1 إلى 100.\nمثال: `حذف 20`');
-  }
+const TICKET_ADMIN_ROLE_ID = '1537274972597260379';
+const TICKET_CONFIG_FILE = './ticket_configs.json';
 
-  const reply = await message.reply('**جاري حذف الرسايل...**');
+let ticketConfigs = {};
 
-  try {
-    await message.channel.bulkDelete(amount, true);
-
-    await reply.edit('**تم حذف الرسايل بنجاح ✓**');
-  } catch (error) {
-    console.error(error);
-    await reply.edit('❌ **صار خطأ أثناء حذف الرسايل.**');
-  }
+if (fs.existsSync(TICKET_CONFIG_FILE)) {
+    try {
+        ticketConfigs = JSON.parse(
+            fs.readFileSync(TICKET_CONFIG_FILE, 'utf8')
+        );
+    } catch {
+        ticketConfigs = {};
     }
+}
+
+function saveTicketConfigs() {
+    fs.writeFileSync(
+        TICKET_CONFIG_FILE,
+        JSON.stringify(ticketConfigs, null, 2)
+    );
+}
+
+
+// ===============================
+// 🎫 أمر تكت
+// الاستخدام:
+// تكت ايدي الكاتيجوري ايدي الرتبة ايدي الروم
+// ===============================
+
+if (message.content.startsWith('تكت ')) {
+
+    if (!message.member.roles.cache.has(TICKET_ADMIN_ROLE_ID)) {
+        return message.reply('❌ هذا الأمر خاص بالدعم الفني فقط.');
+    }
+
+    const args = message.content.trim().split(/\s+/);
+
+    const categoryId = args[1];
+    const supportRoleId = args[2];
+    const panelChannelId = args[3];
+
+    if (!categoryId || !supportRoleId || !panelChannelId) {
+        return message.reply(
+            '❌ الاستخدام الصحيح:\n`تكت ايدي_الكاتيجوري ايدي_رتبة_الدعم ايدي_الروم`'
+        );
+    }
+
+    if (supportRoleId !== TICKET_ADMIN_ROLE_ID) {
+        return message.reply(
+            `❌ رتبة الدعم الفني لازم تكون:\n\`${TICKET_ADMIN_ROLE_ID}\``
+        );
+    }
+
+    const category = message.guild.channels.cache.get(categoryId);
+    const supportRole = message.guild.roles.cache.get(supportRoleId);
+    const panelChannel = message.guild.channels.cache.get(panelChannelId);
+
+    if (!category || category.type !== ChannelType.GuildCategory) {
+        return message.reply('❌ ايدي الكاتيجوري غير صحيح.');
+    }
+
+    if (!supportRole) {
+        return message.reply('❌ ايدي رتبة الدعم غير صحيح.');
+    }
+
+    if (!panelChannel || panelChannel.type !== ChannelType.GuildText) {
+        return message.reply('❌ ايدي روم التكت غير صحيح.');
+    }
+
+    ticketConfigs[message.guild.id] = {
+        categoryId: categoryId,
+        supportRoleId: supportRoleId,
+        panelChannelId: panelChannelId
+    };
+
+    saveTicketConfigs();
+
+    const embed = new EmbedBuilder()
+        .setTitle('🎫 تذكرة الكسوفي')
+        .setDescription(
+            'مرحباً بك في تذكرة الكسوفي 🤍\n\n' +
+            'من هنا يمكنك فتح تذكرة والتواصل مع فريق الدعم الفني.\n\n' +
+            'اختر نوع التذكرة من الأزرار الموجودة بالأسفل.'
+        );
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('ticket_admin_complaint')
+            .setLabel('شكوى على اداري')
+            .setStyle(ButtonStyle.Danger),
+
+        new ButtonBuilder()
+            .setCustomId('ticket_member_complaint')
+            .setLabel('شكوى على عضو')
+            .setStyle(ButtonStyle.Primary),
+
+        new ButtonBuilder()
+            .setCustomId('ticket_suggestion')
+            .setLabel('اقتراح')
+            .setStyle(ButtonStyle.Success),
+
+        new ButtonBuilder()
+            .setCustomId('ticket_programming')
+            .setLabel('شراء برمجه')
+            .setStyle(ButtonStyle.Secondary)
+    );
+
+    await panelChannel.send({
+        embeds: [embed],
+        components: [row]
+    });
+
+    return message.reply('✅ تم إنشاء نظام التكت بنجاح.');
+}
+
+
+// ===============================
+// 🗑️ أمر حذف التكت
+// ===============================
+
+if (message.content === 'حذف') {
+
+    if (
+        !message.channel.topic ||
+        !message.channel.topic.startsWith('ticketOwner:')
+    ) {
+        return;
+    }
+
+    if (!message.member.roles.cache.has(TICKET_ADMIN_ROLE_ID)) {
+        return message.reply('❌ هذا الأمر خاص بالدعم الفني فقط.');
+    }
+
+    await message.reply('🗑️ جاري حذف التكت...');
+
+    setTimeout(async () => {
+        await message.channel.delete().catch(() => {});
+    }, 1000);
+
+    return;
+}
+
+
+// ===============================
+// 🎫 التفاعل مع أزرار التكت
+// ===============================
+
+client.on('interactionCreate', async interaction => {
+
+    if (!interaction.guild) return;
+
+    // ===============================
+    // فتح التكت
+    // ===============================
+
+    if (interaction.isButton()) {
+
+        const ticketTypes = {
+            ticket_admin_complaint: 'شكوى-على-اداري',
+            ticket_member_complaint: 'شكوى-على-عضو',
+            ticket_suggestion: 'اقتراح',
+            ticket_programming: 'شراء-برمجه'
+        };
+
+        if (ticketTypes[interaction.customId]) {
+
+            const config = ticketConfigs[interaction.guild.id];
+
+            if (!config) {
+                return interaction.reply({
+                    content: '❌ نظام التكت غير مفعل.',
+                    ephemeral: true
+                });
+            }
+
+            const existingTicket = interaction.guild.channels.cache.find(
+                channel =>
+                    channel.type === ChannelType.GuildText &&
+                    channel.topic &&
+                    channel.topic.includes(`ticketOwner:${interaction.user.id}`)
+            );
+
+            if (existingTicket) {
+                return interaction.reply({
+                    content: `❌ عندك تكت مفتوح بالفعل: ${existingTicket}`,
+                    ephemeral: true
+                });
+            }
+
+            const ticketName =
+                `${ticketTypes[interaction.customId]}-${interaction.user.username}`
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\u0600-\u06ff-]/g, '-');
+
+            const ticketChannel = await interaction.guild.channels.create({
+                name: ticketName,
+                type: ChannelType.GuildText,
+                parent: config.categoryId,
+                topic:
+                    `ticketOwner:${interaction.user.id}|ticketType:${ticketTypes[interaction.customId]}`,
+
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.id,
+                        deny: [
+                            PermissionFlagsBits.ViewChannel
+                        ]
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory
+                        ]
+                    },
+                    {
+                        id: config.supportRoleId,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.ManageChannels
+                        ]
+                    },
+                    {
+                        id: interaction.client.user.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.ManageChannels
+                        ]
+                    }
+                ]
+            });
+
+            const welcomeEmbed = new EmbedBuilder()
+                .setTitle('🎫 تذكرة الكسوفي')
+                .setDescription(
+                    `مرحباً ${interaction.user} 🤍\n\n` +
+                    `تم فتح تذكرتك بنجاح.\n` +
+                    `نوع التذكرة: **${ticketTypes[interaction.customId]}**\n\n` +
+                    `<@&${config.supportRoleId}> سيتم مساعدتك قريباً.`
+                );
+
+            const controlRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('ticket_close')
+                    .setLabel('قفل التكت')
+                    .setEmoji('🔒')
+                    .setStyle(ButtonStyle.Danger),
+
+                new ButtonBuilder()
+                    .setCustomId('ticket_rename')
+                    .setLabel('تسمية التكت')
+                    .setEmoji('✏️')
+                    .setStyle(ButtonStyle.Primary),
+
+                new ButtonBuilder()
+                    .setCustomId('ticket_add_member')
+                    .setLabel('إضافة عضو')
+                    .setEmoji('👤')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+            await ticketChannel.send({
+                content:
+                    `${interaction.user} <@&${config.supportRoleId}>`,
+                embeds: [welcomeEmbed],
+                components: [controlRow]
+            });
+
+            return interaction.reply({
+                content: `✅ تم فتح تذكرتك: ${ticketChannel}`,
+                ephemeral: true
+            });
+        }
+
+
+        // ===============================
+        // 🔒 قفل التكت
+        // ===============================
+
+        if (interaction.customId === 'ticket_close') {
+
+            if (
+                !interaction.member.roles.cache.has(
+                    TICKET_ADMIN_ROLE_ID
+                )
+            ) {
+                return interaction.reply({
+                    content: '❌ هذا الزر خاص بالدعم الفني فقط.',
+                    ephemeral: true
+                });
+            }
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('ticket_confirm_close')
+                    .setLabel('تأكيد')
+                    .setStyle(ButtonStyle.Danger),
+
+                new ButtonBuilder()
+                    .setCustomId('ticket_cancel_close')
+                    .setLabel('تراجع')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+            return interaction.reply({
+                content: '🔒 هل أنت متأكد من قفل التكت؟',
+                components: [row]
+            });
+        }
+
+
+        // ===============================
+        // ❌ تراجع عن القفل
+        // ===============================
+
+        if (interaction.customId === 'ticket_cancel_close') {
+
+            return interaction.update({
+                content: '✅ تم إلغاء قفل التكت.',
+                components: []
+            });
+        }
+
+
+        // ===============================
+        // 🔒 تأكيد القفل
+        // ===============================
+
+        if (interaction.customId === 'ticket_confirm_close') {
+
+            if (
+                !interaction.member.roles.cache.has(
+                    TICKET_ADMIN_ROLE_ID
+                )
+            ) {
+                return interaction.reply({
+                    content: '❌ هذا الزر خاص بالدعم الفني فقط.',
+                    ephemeral: true
+                });
+            }
+
+            const topic = interaction.channel.topic || '';
+            const ownerMatch = topic.match(/ticketOwner:(\d+)/);
+
+            if (ownerMatch) {
+
+                const ownerId = ownerMatch[1];
+
+                await interaction.channel.permissionOverwrites.edit(
+                    ownerId,
+                    {
+                        SendMessages: false,
+                        ViewChannel: true,
+                        ReadMessageHistory: true
+                    }
+                );
+            }
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('ticket_delete')
+                    .setLabel('حذف')
+                    .setStyle(ButtonStyle.Danger),
+
+                new ButtonBuilder()
+                    .setCustomId('ticket_reopen')
+                    .setLabel('فتح')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+            return interaction.update({
+                content: '🔒 تم قفل التكت.\n\nهل تريد حذف التكت؟',
+                components: [row]
+            });
+        }
+
+
+        // ===============================
+        // 🗑️ حذف التكت من الزر
+        // ===============================
+
+        if (interaction.customId === 'ticket_delete') {
+
+            if (
+                !interaction.member.roles.cache.has(
+                    TICKET_ADMIN_ROLE_ID
+                )
+            ) {
+                return interaction.reply({
+                    content: '❌ هذا الزر خاص بالدعم الفني فقط.',
+                    ephemeral: true
+                });
+            }
+
+            await interaction.reply('🗑️ جاري حذف التكت...');
+
+            setTimeout(async () => {
+                await interaction.channel.delete().catch(() => {});
+            }, 1000);
+
+            return;
+        }
+
+
+        // ===============================
+        // 🔓 فتح التكت
+        // ===============================
+
+        if (interaction.customId === 'ticket_reopen') {
+
+            if (
+                !interaction.member.roles.cache.has(
+                    TICKET_ADMIN_ROLE_ID
+                )
+            ) {
+                return interaction.reply({
+                    content: '❌ هذا الزر خاص بالدعم الفني فقط.',
+                    ephemeral: true
+                });
+            }
+
+            const topic = interaction.channel.topic || '';
+            const ownerMatch = topic.match(/ticketOwner:(\d+)/);
+
+            if (ownerMatch) {
+
+                const ownerId = ownerMatch[1];
+
+                await interaction.channel.permissionOverwrites.edit(
+                    ownerId,
+                    {
+                        ViewChannel: true,
+                        SendMessages: true,
+                        ReadMessageHistory: true
+                    }
+                );
+            }
+
+            return interaction.update({
+                content: '🔓 تم فتح التكت مرة أخرى.',
+                components: []
+            });
+        }
+
+
+        // ===============================
+        // ✏️ تسمية التكت
+        // ===============================
+
+        if (interaction.customId === 'ticket_rename') {
+
+            if (
+                !interaction.member.roles.cache.has(
+                    TICKET_ADMIN_ROLE_ID
+                )
+            ) {
+                return interaction.reply({
+                    content: '❌ هذا الزر خاص بالدعم الفني فقط.',
+                    ephemeral: true
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId('ticket_rename_modal')
+                .setTitle('تسمية التكت');
+
+            const nameInput = new TextInputBuilder()
+                .setCustomId('ticket_new_name')
+                .setLabel('اكتب اسم التكت')
+                .setPlaceholder('مثال: مطلوب مالك')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(100);
+
+            const row = new ActionRowBuilder().addComponents(nameInput);
+
+            modal.addComponents(row);
+
+            return interaction.showModal(modal);
+        }
+
+
+        // ===============================
+        // 👤 إضافة عضو
+        // ===============================
+
+        if (interaction.customId === 'ticket_add_member') {
+
+            if (
+                !interaction.member.roles.cache.has(
+                    TICKET_ADMIN_ROLE_ID
+                )
+            ) {
+                return interaction.reply({
+                    content: '❌ هذا الزر خاص بالدعم الفني فقط.',
+                    ephemeral: true
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId('ticket_add_member_modal')
+                .setTitle('إضافة عضو للتكت');
+
+            const memberInput = new TextInputBuilder()
+                .setCustomId('ticket_member')
+                .setLabel('اكتب ID العضو أو اليوزر')
+                .setPlaceholder('مثال: 123456789012345678')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(100);
+
+            const row = new ActionRowBuilder().addComponents(memberInput);
+
+            modal.addComponents(row);
+
+            return interaction.showModal(modal);
+        }
+    }
+
+
+    // ===============================
+    // ✏️ مودال تسمية التكت
+    // ===============================
+
+    if (
+        interaction.isModalSubmit() &&
+        interaction.customId === 'ticket_rename_modal'
+    ) {
+
+        if (
+            !interaction.member.roles.cache.has(
+                TICKET_ADMIN_ROLE_ID
+            )
+        ) {
+            return interaction.reply({
+                content: '❌ هذا الأمر خاص بالدعم الفني فقط.',
+                ephemeral: true
+            });
+        }
+
+        const newName = interaction.fields
+            .getTextInputValue('ticket_new_name')
+            .trim();
+
+        const finalName = newName
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9\u0600-\u06ff-_]/g, '');
+
+        if (!finalName) {
+            return interaction.reply({
+                content: '❌ اسم التكت غير صالح.',
+                ephemeral: true
+            });
+        }
+
+        await interaction.channel.setName(finalName);
+
+        return interaction.reply({
+            content: `✅ تم تغيير اسم التكت إلى **${finalName}**`
+        });
+    }
+
+
+    // ===============================
+    // 👤 مودال إضافة عضو
+    // ===============================
+
+    if (
+        interaction.isModalSubmit() &&
+        interaction.customId === 'ticket_add_member_modal'
+    ) {
+
+        if (
+            !interaction.member.roles.cache.has(
+                TICKET_ADMIN_ROLE_ID
+            )
+        ) {
+            return interaction.reply({
+                content: '❌ هذا الأمر خاص بالدعم الفني فقط.',
+                ephemeral: true
+            });
+        }
+
+        const input = interaction.fields
+            .getTextInputValue('ticket_member')
+            .trim();
+
+        let member = null;
+
+        if (/^\d{17,20}$/.test(input)) {
+            member = await interaction.guild.members
+                .fetch(input)
+                .catch(() => null);
+        } else {
+            const results = await interaction.guild.members
+                .search({
+                    query: input,
+                    limit: 1
+                })
+                .catch(() => null);
+
+            if (results && results.size > 0) {
+                member = results.first();
+            }
+        }
+
+        if (!member) {
+            return interaction.reply({
+                content: '❌ لم أجد هذا العضو.',
+                ephemeral: true
+            });
+        }
+
+        await interaction.channel.permissionOverwrites.edit(
+            member.id,
+            {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true
+            }
+        );
+
+        return interaction.reply(
+            `✅ تمت إضافة ${member} إلى التكت ويمكنه الآن رؤية التكت والكتابة فيه.`
+        );
+    }
+    
 });
 
 client.login(process.env.TOKEN);
