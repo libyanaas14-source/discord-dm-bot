@@ -1175,7 +1175,9 @@ client.on('interactionCreate', async interaction => {
     // ===============================
 
     if (interaction.isButton()) {
-await interaction.deferReply({ ephemeral: true });
+
+
+    
         const ticketTypes = {
             ticket_admin_complaint: 'شكوى-على-اداري',
             ticket_member_complaint: 'شكوى-على-عضو',
