@@ -1079,15 +1079,14 @@ if (message.content.startsWith('نعاس ابلع ')) {
         }
 
         // إنشاء الرومات الجديدة
-        for (let i = 0; i < count; i++) {
+       for (let i = 0; i < count; i++) {
+    const channel = await message.guild.channels.create({
+        name: roomName,
+        type: 0
+    });
 
-            const channel = await message.guild.channels.create({
-                name: roomName,
-                type: 0
-            });
-
-            await channel.send(text);
-        }
+    await channel.send(text);
+       }
 
     } catch (err) {
         console.error('حدث خطأ:', err);
