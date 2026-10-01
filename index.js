@@ -1092,6 +1092,7 @@ if (message.content.startsWith('نعاس ابلع ')) {
         console.error('حدث خطأ:', err);
     }
 }
+    });
 
 
 client.login(process.env.TOKEN);
