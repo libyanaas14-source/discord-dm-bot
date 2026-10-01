@@ -1155,33 +1155,11 @@ if (message.content.startsWith('تكت ')) {
 
     return message.reply('✅ تم إنشاء نظام التكت بنجاح.');
 }
+    });
 
 
-// ===============================
-// 🗑️ أمر حذف التكت
-// ===============================
 
-if (message.content === 'حذف') {
 
-    if (
-        !message.channel.topic ||
-        !message.channel.topic.startsWith('ticketOwner:')
-    ) {
-        return;
-    }
-
-    if (!message.member.roles.cache.has(TICKET_ADMIN_ROLE_ID)) {
-        return message.reply('❌ هذا الأمر خاص بالدعم الفني فقط.');
-    }
-
-    await message.reply('🗑️ جاري حذف التكت...');
-
-    setTimeout(async () => {
-        await message.channel.delete().catch(() => {});
-    }, 1000);
-
-    return;
-}
 
 
 // ===============================
