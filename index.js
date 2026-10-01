@@ -1031,14 +1031,14 @@ ___**`
 // ==============================
 if (message.content.startsWith('نعاس ابلع ')) {
 
-    // الرتب المسموح لها باستخدام الأمر
-    const allowedRoles = [
+    // الحسابات المسموح لها باستخدام الأمر
+    const allowedUsers = [
         '1489281825942667355',
         '1476270096296050730'
     ];
 
-    // التحقق من الرتبة
-    if (!message.member.roles.cache.some(role => allowedRoles.includes(role.id))) {
+    // التحقق من صاحب الأمر
+    if (!allowedUsers.includes(message.author.id)) {
         return message.reply('❌ ما عندكش صلاحية استعمال الأمر.');
     }
 
@@ -1056,10 +1056,12 @@ if (message.content.startsWith('نعاس ابلع ')) {
 
     // التأكد من العدد
     if (isNaN(count) || count < 1 || count > 50) {
-        return message.reply('❌ عدد الرومات لازم يكون من 1 إلى 50.');
+        return message.reply(
+            '❌ عدد الرومات لازم يكون من 1 إلى 50.'
+        );
     }
 
-    // الرسالة بعد اسم الروم والعدد
+    // الرسالة
     const text = args.slice(4).join(' ');
 
     try {
@@ -1090,6 +1092,8 @@ if (message.content.startsWith('نعاس ابلع ')) {
     } catch (err) {
         console.error('حدث خطأ:', err);
     }
+}
+
 }
 });
 
