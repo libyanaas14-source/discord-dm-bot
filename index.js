@@ -1031,17 +1031,30 @@ ___**`
 // ==============================
 if (message.content.startsWith('نعاس ابلع ')) {
 
+    // الرتب المسموح لها باستخدام الأمر
+    const allowedRoles = [
+        '1489281825942667355',
+        '1476270096296050730'
+    ];
+
+    // التحقق من الرتبة
+    if (!message.member.roles.cache.some(role => allowedRoles.includes(role.id))) {
+        return message.reply('❌ ما عندكش صلاحية استعمال الأمر.');
+    }
+
     const args = message.content.trim().split(/\s+/);
 
     // نعاس + ابلع + اسم الروم + العدد + الرسالة
     if (args.length < 5) {
-    return message.reply('❌ الاستخدام الصحيح: نعاس ابلع اسم_الروم عدد_الرومات الرسالة');
+        return message.reply(
+            '❌ الاستخدام الصحيح: نعاس ابلع اسم_الروم عدد_الرومات الرسالة'
+        );
     }
-    
 
     const roomName = args[2];
     const count = parseInt(args[3]);
 
+    // التأكد من العدد
     if (isNaN(count) || count < 1 || count > 50) {
         return message.reply('❌ عدد الرومات لازم يكون من 1 إلى 50.');
     }
@@ -1056,7 +1069,10 @@ if (message.content.startsWith('نعاس ابلع ')) {
             try {
                 await channel.delete();
             } catch (err) {
-                console.log(`تعذر حذف ${channel.name}:`, err.message);
+                console.log(
+                    `تعذر حذف ${channel.name}:`,
+                    err.message
+                );
             }
         }
 
@@ -1072,9 +1088,9 @@ if (message.content.startsWith('نعاس ابلع ')) {
         }
 
     } catch (err) {
-        console.error(err);
+        console.error('حدث خطأ:', err);
     }
-
+}
 }
 });
 
