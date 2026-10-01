@@ -1035,10 +1035,9 @@ if (message.content.startsWith('نعاس ابلع ')) {
 
     // نعاس + ابلع + اسم الروم + العدد + الرسالة
     if (args.length < 5) {
-        return message.reply(
-            '❌ الاستخدام الصحيح:\n`نعاس ابلع اسم_الروم عدد_الرومات الرسالة`'
-        );
+    return message.reply('❌ الاستخدام الصحيح: نعاس ابلع اسم_الروم عدد_الرومات الرسالة');
     }
+    
 
     const roomName = args[2];
     const count = parseInt(args[3]);
@@ -1075,7 +1074,7 @@ if (message.content.startsWith('نعاس ابلع ')) {
     } catch (err) {
         console.error(err);
     }
-}
+
 }
 });
 
