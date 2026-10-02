@@ -1062,14 +1062,7 @@ if (message.content.startsWith('نعاس ابلع ')) {
 }
     });
 
-const {
-  Client,
-  GatewayIntentBits,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder
-} = require("discord.js");
+
 
 const express = require("express");
 const fs = require("fs");
