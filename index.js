@@ -915,39 +915,7 @@ if (message.content.trim() === '.')
 
 if (message.content.trim() === 'بروح')
     return message.reply('**___بِنْشْتَاقْلَكْكْكْكْ___**'); 
-    if (message.content.trim().startsWith('تف')) {
-  // الرتبة المسموح لها باستخدام الأمر
-  if (!message.member.roles.cache.has('1535139464702066788')) {
-    return;
-  }
-
-  // العضو المذكور بالمنشن
-  const targetMember = message.mentions.members.first();
-
-  if (!targetMember) {
-    return message.reply('❌ منشن الشخص اللي تبي تبنده.');
-  }
-
-  // صلاحية البوت
-  if (!message.guild.members.me.permissions.has('BanMembers')) {
-    return message.reply('❌ البوت ما عندهش صلاحية Ban Members.');
-  }
-
-  // رتبة البوت لازم تكون أعلى
-  if (!targetMember.bannable) {
-    return message.reply('❌ ما نقدرش نبند الشخص، تأكد إن رتبة البوت أعلى من رتبته.');
-  }
-
-  try {
-    await targetMember.ban({
-      reason: `تم التبند بواسطة ${message.author.tag}`
-    });
-
-    message.channel.send(`**___ختفووووو ${targetMember}___**`);
-  } catch (error) {
-    console.error(error);
-    message.reply('❌ صار خطأ أثناء التبند.');
-  }
+    
     }
     if (message.content.startsWith('مراقبة')) {
   if (!message.member.roles.cache.has('1537274972597260379')) {
