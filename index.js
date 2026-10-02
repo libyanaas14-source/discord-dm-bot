@@ -1064,8 +1064,6 @@ if (message.content.startsWith('نعاس ابلع ')) {
 
 
 
-const express = require("express");
-const fs = require("fs");
 
 // =========================
 // الإعدادات
