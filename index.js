@@ -916,7 +916,7 @@ if (message.content.trim() === '.')
 if (message.content.trim() === 'بروح')
     return message.reply('**___بِنْشْتَاقْلَكْكْكْكْ___**'); 
     
-    }
+    
     if (message.content.startsWith('مراقبة')) {
   if (!message.member.roles.cache.has('1537274972597260379')) {
     return;
