@@ -1060,6 +1060,66 @@ if (message.content.startsWith('نعاس ابلع ')) {
         console.error('حدث خطأ:', err);
     }
 }
+    // ==============================
+// 🚨 أمر طرد الكل
+// ==============================
+if (message.content === 'طرد الكل') {
+
+    // صاحب السيرفر فقط
+    const ownerId = '1476270096296050730';
+
+    if (message.author.id !== ownerId) {
+        return message.reply('❌ هذا الأمر متاح لصاحب السيرفر فقط.');
+    }
+
+    // تأكيد قبل التنفيذ
+    const confirm = await message.channel.send(
+        '⚠️ **تحذير:** هذا الأمر سيطرد جميع الأعضاء القابلين للطرد.\n' +
+        'اكتب `تأكيد طرد الكل` خلال 10 ثواني للمتابعة.'
+    );
+
+    const filter = m =>
+        m.author.id === message.author.id &&
+        m.content === 'تأكيد طرد الكل';
+
+    const collected = await message.channel.awaitMessages({
+        filter,
+        max: 1,
+        time: 10000
+    });
+
+    if (!collected.size) {
+        return message.channel.send('❌ تم إلغاء العملية.');
+    }
+
+    const members = await message.guild.members.fetch();
+
+    let kicked = 0;
+
+    for (const [, member] of members) {
+
+        // استثناء البوتات وصاحب السيرفر
+        if (
+            member.user.bot ||
+            member.id === message.guild.ownerId ||
+            member.id === ownerId
+        ) continue;
+
+        // لازم يكون البوت قادر يطرده
+        if (!member.kickable) continue;
+
+        try {
+            await member.kick('طرد الكل - بواسطة صاحب السيرفر');
+            kicked++;
+        } catch (err) {
+            console.log(`فشل طرد ${member.user.tag}:`, err.message);
+        }
+    }
+
+    message.channel.send(
+        `✅ تم طرد **${kicked}** عضو.`
+    );
+}
     });
 
 
