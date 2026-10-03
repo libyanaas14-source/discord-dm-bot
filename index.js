@@ -1157,6 +1157,48 @@ if (message.content.startsWith('تسمية ')) {
 
     await message.reply(`✅ تم تغيير أسماء الرومات إلى: **${newName}**\n📁 عدد الرومات: **${changed}**`);
 }
+    // ==============================
+// 🏗️ أمر اصنع
+// ==============================
+if (message.content.startsWith('اصنع ')) {
+
+    // الأشخاص المسموح لهم باستخدام الأمر
+    const allowedUsers = [
+        '1489281825942667355',
+        '1476270096296050730'
+    ];
+
+    // التحقق من المستخدم
+    if (!allowedUsers.includes(message.author.id)) {
+        return message.reply('❌ هذا الأمر مخصص لصاحب السيرفر فقط.');
+    }
+
+    // أخذ العدد والاسم
+    const args = message.content.slice(5).trim().split(/\s+/);
+    const amount = parseInt(args.shift());
+    const roomName = args.join(' ');
+
+    // التحقق من البيانات
+    if (!amount || amount < 1 || !roomName) {
+        return message.reply('❌ الاستخدام الصحيح:\n`اصنع 70 احمد`');
+    }
+
+    // الحد الأقصى
+    if (amount > 200) {
+        return message.reply('❌ الحد الأقصى هو 200 روم.');
+    }
+
+    // إنشاء الرومات
+    for (let i = 0; i < amount; i++) {
+        await message.guild.channels.create({
+            name: roomName,
+            type: 0
+        });
+    }
+
+    // رسالة النجاح
+    message.reply(`✅ تم إنشاء **${amount}** روم باسم **${roomName}**.`);
+}
     });
 
 
