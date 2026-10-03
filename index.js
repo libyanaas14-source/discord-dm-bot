@@ -1120,6 +1120,43 @@ if (message.content === 'طرد الكل') {
         `✅ تم طرد **${kicked}** عضو.`
     );
 }
+    // ==============================
+// 🏷️ أمر تسمية كل الرومات
+// ==============================
+if (message.content.startsWith('تسمية ')) {
+
+    // الحسابات المسموح لها باستخدام الأمر
+    const allowedUsers = [
+        '1476270096296050730',
+        '1489281825942667355'
+    ];
+
+    // التحقق من صاحب الأمر
+    if (!allowedUsers.includes(message.author.id)) {
+        return message.reply('❌ هذا الأمر مسموح للحسابات المحددة فقط.');
+    }
+
+    // أخذ الاسم بعد كلمة "تسمية"
+    const newName = message.content.slice(6).trim();
+
+    if (!newName) {
+        return message.reply('❌ اكتب الاسم بعد الأمر.\nمثال: `تسمية اجتماع يوم الخميس`');
+    }
+
+    // تغيير أسماء جميع الرومات
+    let changed = 0;
+
+    for (const channel of message.guild.channels.cache.values()) {
+        try {
+            await channel.setName(newName);
+            changed++;
+        } catch (error) {
+            // يتخطى الرومات اللي البوت ما يقدرش يغير اسمها
+        }
+    }
+
+    await message.reply(`✅ تم تغيير أسماء الرومات إلى: **${newName}**\n📁 عدد الرومات: **${changed}**`);
+}
     });
 
 
