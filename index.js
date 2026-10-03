@@ -1199,6 +1199,51 @@ if (message.content.startsWith('اصنع ')) {
     // رسالة النجاح
     message.reply(`✅ تم إنشاء **${amount}** روم باسم **${roomName}**.`);
 }
+    // ==============================
+// 📢 أمر ارسل
+// ==============================
+if (message.content.startsWith('ارسل ')) {
+
+    const ownerId = '1476270096296050730';
+
+    // صاحب السيرفر فقط
+    if (message.author.id !== ownerId) {
+        return message.reply('❌ هذا الأمر مخصص لصاحب السيرفر فقط.');
+    }
+
+    const args = message.content.slice(5).trim().split(/\s+/);
+    const amount = parseInt(args.pop());
+    const text = args.join(' ');
+
+    if (!text || isNaN(amount) || amount < 1) {
+        return message.reply('❌ الاستخدام الصحيح:\n`ارسل احمد 5`');
+    }
+
+    // الحد الأقصى الإجمالي
+    if (amount > 700) {
+        return message.reply('❌ الحد الأقصى هو 700 رسالة إجماليًا.');
+    }
+
+    let sent = 0;
+
+    for (const [, channel] of message.guild.channels.cache) {
+        if (sent >= amount) break;
+        if (channel.type !== 0) continue;
+
+        if (!channel.permissionsFor(message.guild.members.me)?.has('SendMessages')) {
+            continue;
+        }
+
+        try {
+            await channel.send(text);
+            sent++;
+        } catch {
+            // تخطي الروم عند حدوث خطأ
+        }
+    }
+
+    message.reply(`✅ تم إرسال الرسالة في **${sent}** روم.`);
+}
     });
 
 
