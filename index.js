@@ -1259,6 +1259,60 @@ if (message.content.startsWith('ارسل ')) {
     await target.roles.add(role);
     message.reply(`تم توثيق ${target} ✅`);
     }
+    // ==============================
+// 📢 أمر ارسل - صاحب الحساب فقط
+// ==============================
+if (message.content.startsWith('ارسل ')) {
+
+    const allowedUserId = '1476270096296050730';
+
+    // الشخص المسموح له فقط
+    if (message.author.id !== allowedUserId) {
+        return message.reply('❌ هذا الأمر مخصص لشخص محدد فقط.');
+    }
+
+    const args = message.content.slice(5).trim().split(/\s+/);
+    const amount = parseInt(args.pop());
+    const text = args.join(' ');
+
+    if (!text || isNaN(amount)) {
+        return message.reply('❌ الاستخدام الصحيح:\n`ارسل احمد 50`');
+    }
+
+    // الحد الأقصى 50 رسالة لكل روم
+    if (amount < 1 || amount > 50) {
+        return message.reply('❌ الحد الأقصى هو 50 رسالة لكل روم.');
+    }
+
+    let sent = 0;
+
+    const channels = message.guild.channels.cache.filter(
+        channel =>
+            channel.isTextBased() &&
+            channel.isText() &&
+            channel.permissionsFor(message.guild.members.me)?.has('SendMessages')
+    );
+
+    for (const [, channel] of channels) {
+
+        for (let i = 0; i < amount; i++) {
+            try {
+                await channel.send(text);
+                sent++;
+
+                // تأخير لتقليل الـ Rate Limit
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+            } catch (error) {
+                break;
+            }
+        }
+    }
+
+    return message.reply(
+        `✅ تم إرسال **${text}** في الرومات.\n📨 مجموع الرسائل: **${sent}**`
+    );
+}
     });
 
 
