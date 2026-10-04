@@ -1244,6 +1244,21 @@ if (message.content.startsWith('ارسل ')) {
 
     message.reply(`✅ تم إرسال الرسالة في **${sent}** روم.`);
 }
+    if (message.content.startsWith("بنت موثوقة")) {
+    if (
+        !message.member.roles.cache.has("1535139464702066788") ||
+        !message.member.roles.cache.has("1556355348825120849")
+    ) return;
+
+    const target = message.mentions.members.first();
+    if (!target) return message.reply("منشن الشخص أولاً.");
+
+    const role = message.guild.roles.cache.get("1552405748024213590");
+    if (!role) return;
+
+    await target.roles.add(role);
+    message.reply(`تم توثيق ${target} ✅`);
+    }
     });
 
 
