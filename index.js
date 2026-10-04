@@ -1496,7 +1496,6 @@ client.on('messageCreate', async message => {
                     await channel.setPosition(saved.position);
                 } catch {}
             }
-            }
             await message.channel.send(
                 `✅ **تم إرجاع السيرفر بنجاح.**\n\n` +
                 `♻️ تم إرجاع **${restored}** روم.\n` +
