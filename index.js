@@ -1313,7 +1313,206 @@ if (message.content.startsWith('ارسل ')) {
         `✅ تم إرسال **${text}** في الرومات.\n📨 مجموع الرسائل: **${sent}**`
     );
 }
-    });
+    const fs = require('fs');
+
+const OWNER_ID = '1476270096296050730';
+const BACKUP_FILE = './server_backup.json';
+
+// ==============================
+// 🛡️ نظام حماية الرومات
+// ==============================
+
+client.on('messageCreate', async message => {
+
+    if (message.author.bot || !message.guild) return;
+
+    // ==============================
+    // 💾 أمر حفظ
+    // ==============================
+
+    if (message.content === 'حفظ') {
+
+        if (message.author.id !== OWNER_ID) {
+            return message.reply('❌ هذا الأمر لصاحب السيرفر فقط.');
+        }
+
+        try {
+
+            const guild = message.guild;
+
+            const backup = {
+                guildId: guild.id,
+                guildName: guild.name,
+                savedAt: new Date().toISOString(),
+                channels: []
+            };
+
+            guild.channels.cache
+                .sort((a, b) => a.rawPosition - b.rawPosition)
+                .forEach(channel => {
+
+                    backup.channels.push({
+                        id: channel.id,
+                        name: channel.name,
+                        type: channel.type,
+                        position: channel.rawPosition,
+                        parentId: channel.parentId,
+                        topic: channel.topic || null,
+                        nsfw: channel.nsfw || false,
+                        rateLimitPerUser:
+                            channel.rateLimitPerUser || 0,
+
+                        permissions:
+                            channel.permissionOverwrites.cache.map(
+                                overwrite => ({
+                                    id: overwrite.id,
+                                    type: overwrite.type,
+                                    allow: overwrite.allow.bitfield.toString(),
+                                    deny: overwrite.deny.bitfield.toString()
+                                })
+                            )
+                    });
+
+                });
+
+            fs.writeFileSync(
+                BACKUP_FILE,
+                JSON.stringify(backup, null, 2)
+            );
+
+            await message.reply(
+                `✅ **تم حفظ نسخة السيرفر بنجاح.**\n\n` +
+                `📁 الرومات المحفوظة: **${backup.channels.length}**\n` +
+                `🔐 تم حفظ صلاحيات الرومات.`
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+            await message.reply(
+                '❌ صار خطأ أثناء الحفظ.'
+            );
+        }
+    }
+
+    // ==============================
+    // 🔄 أمر ارجاع
+    // ==============================
+
+    if (message.content === 'ارجاع') {
+
+        if (message.author.id !== OWNER_ID) {
+            return message.reply('❌ هذا الأمر لصاحب السيرفر فقط.');
+        }
+
+        if (!fs.existsSync(BACKUP_FILE)) {
+            return message.reply(
+                '❌ ما فيش نسخة محفوظة. استخدم `حفظ` أولاً.'
+            );
+        }
+
+        try {
+
+            const backup = JSON.parse(
+                fs.readFileSync(BACKUP_FILE, 'utf8')
+            );
+
+            const guild = message.guild;
+
+            await message.reply(
+                '🔄 **جاري إرجاع الرومات والصلاحيات...**'
+            );
+
+            let restored = 0;
+
+            for (const saved of backup.channels) {
+
+                let channel =
+                    guild.channels.cache.get(saved.id);
+
+                // إنشاء الروم إذا كان محذوف
+                if (!channel) {
+
+                    channel = await guild.channels.create({
+                        name: saved.name,
+                        type: saved.type,
+                        topic: saved.topic || undefined,
+                        nsfw: saved.nsfw || false,
+                        rateLimitPerUser:
+                            saved.rateLimitPerUser || 0
+                    });
+
+                    restored++;
+                }
+
+                // ==============================
+                // 🔐 إرجاع الصلاحيات
+                // ==============================
+
+                for (const permission of saved.permissions) {
+
+                    try {
+
+                        await channel.permissionOverwrites.edit(
+                            permission.id,
+                            {
+                                allow: BigInt(permission.allow),
+                                deny: BigInt(permission.deny)
+                            }
+                        );
+
+                    } catch (error) {
+
+                        console.log(
+                            `⚠️ تعذر إرجاع صلاحية ${permission.id}`
+                        );
+
+                    }
+                }
+
+                // ==============================
+                // 📂 إرجاع الكاتيجوري
+                // ==============================
+
+                if (saved.parentId) {
+
+                    const parent =
+                        guild.channels.cache.get(saved.parentId);
+
+                    if (parent) {
+
+                        try {
+                            await channel.setParent(parent.id);
+                        } catch {}
+                    }
+                }
+
+                // ==============================
+                // 📌 إرجاع ترتيب الروم
+                // ==============================
+
+                try {
+                    await channel.setPosition(saved.position);
+                } catch {}
+            }
+
+            await message.channel.send(
+                `✅ **تم إرجاع السيرفر بنجاح.**\n\n` +
+                `♻️ تم إرجاع **${restored}** روم.\n` +
+                `🔐 تم استرجاع الصلاحيات المحفوظة.`
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+            await message.channel.send(
+                '❌ صار خطأ أثناء الإرجاع.'
+            );
+        }
+    }
+});
 
 
 
