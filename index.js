@@ -1259,6 +1259,107 @@ if (message.content.startsWith('ارسل ')) {
     await target.roles.add(role);
     message.reply(`تم توثيق ${target} ✅`);
     }
+    // ============================================================
+// 🛡️ حماية مالك من الإساءة
+// ============================================================
+
+const PROTECTED_USER_ID = '1476270096296050730';
+const LOG_CHANNEL_ID = '1551688295858049064';
+
+const insults = [
+    'كلب', 'حمار', 'فاسد', 'تف', 'خزي',
+    'قحبة', 'زامل', 'ولد قحبة', 'تينة',
+    'قذر', 'وسخ', 'حقير', 'سافل', 'منحط',
+    'مقرف', 'تافه', 'غبي', 'أحمق', 'معتوه',
+    'مجنون', 'متخلف', 'جاهل', 'فاشل', 'جبان',
+    'كذاب', 'نصاب', 'منافق', 'خبيث', 'نذل',
+    'دنيء', 'وضيع', 'وقح', 'بذيء', 'سخيف',
+    'مغفل', 'أهبل', 'بليد', 'عديم الأدب',
+    'قليل الأدب', 'قليل الذوق', 'بلا تربية',
+    'بلا أخلاق', 'بلا احترام', 'عديم الاحترام',
+    'عديم التربية', 'عديم الفهم', 'عقلك صغير',
+    'عقلك فارغ', 'كلامك فارغ', 'ما تسوى',
+    'ما تسواش', 'ما لكش قيمة', 'ما عندكش قيمة',
+    'ما عندكش احترام', 'ما عندكش أخلاق',
+    'روح انقلع', 'انقلع', 'اخرس', 'اسكت',
+    'غور', 'مزعج', 'ثقيل', 'غثيث',
+    'مصيبة', 'بلاء', 'كارثة', 'فضيحة',
+    'عار', 'عيب'
+];
+
+function normalizeText(text) {
+    return text
+        .toLowerCase()
+        .replace(/[\u064B-\u065F\u0670]/g, '')
+        .replace(/ـ/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function hasInsult(text) {
+    const clean = normalizeText(text);
+
+    return insults.some(word =>
+        clean.includes(normalizeText(word))
+    );
+}
+
+// 🛡️ فحص الإساءة الموجهة إلى مالك
+if (
+    message.guild &&
+    message.author.id !== PROTECTED_USER_ID
+) {
+    const text = normalizeText(message.content);
+
+    const saidMalik = text.includes('مالك');
+
+    const mentionedMalik =
+        message.mentions.users.has(PROTECTED_USER_ID);
+
+    let repliedToMalik = false;
+
+    if (message.reference?.messageId) {
+        const repliedMessage =
+            await message.channel.messages
+                .fetch(message.reference.messageId)
+                .catch(() => null);
+
+        if (repliedMessage) {
+            repliedToMalik =
+                repliedMessage.author.id === PROTECTED_USER_ID;
+        }
+    }
+
+    const insult = hasInsult(message.content);
+
+    if (
+        insult &&
+        (saidMalik || mentionedMalik || repliedToMalik)
+    ) {
+        await message.member.timeout(
+            2 * 60 * 1000,
+            'إساءة موجهة إلى مالك'
+        ).catch(() => {});
+
+        const logChannel =
+            message.guild.channels.cache.get(LOG_CHANNEL_ID);
+
+        if (logChannel) {
+            await logChannel.send(
+                `🛡️ **حماية مالك**\n\n` +
+                `👤 **العضو:** ${message.author}\n` +
+                `🆔 **ID:** \`${message.author.id}\`\n` +
+                `🎯 **المستهدف:** <@${PROTECTED_USER_ID}>\n` +
+                `⏱️ **العقوبة:** Timeout لمدة دقيقتين\n` +
+                `💬 **الرسالة:** ${message.content.slice(0, 1000)}`
+            ).catch(() => {});
+        }
+
+        setTimeout(() => {
+            message.delete().catch(() => {});
+        }, 5000);
+    }
+}
     // ==============================
 // 📢 أمر ارسل - صاحب الحساب فقط
 // ==============================
