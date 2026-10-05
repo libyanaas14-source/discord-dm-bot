@@ -955,13 +955,13 @@ async function startChairs(channel) {
 
 async function startHotXO(channel) {
 
-    if (activeGame.players.length !== 2) {
+        if (activeGame.players.size !== 2) { 
         await channel.send('❌ لعبة XO الملتهبة تحتاج لاعبين بالضبط.');
         activeGame = null;
         return;
     }
 
-    const players = [...activeGame.players];
+    const players = [...activeGame.players.values()];
 
     const board = Array(9).fill('⬜');
     let turn = 0;
