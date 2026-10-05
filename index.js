@@ -1460,7 +1460,54 @@ if (message.content.startsWith('كلب ظال')) {
             '❌ ما قدرت أعطيه الرتبة، تأكد أن رتبة البوت أعلى من الرتبة.'
         );
     }
-}                
+}   
+// ============================================================
+// 🎮 أوامر نظام الألعاب
+// ============================================================
+
+if (message.content.startsWith('العاب')) {
+
+    const gameName = message.content
+        .slice(5)
+        .trim();
+
+    if (!gameName) {
+        return message.reply(
+            '🎮 **قائمة الألعاب:**\n\n' +
+            games.gamesList()
+        );
+    }
+
+    if (!games.gamesList().includes(gameName)) {
+        return message.reply(
+            '❌ اللعبة غير موجودة.\n\n' +
+            '🎮 **الألعاب المتوفرة:**\n' +
+            games.gamesList()
+        );
+    }
+
+    return games.createGame(message, gameName);
+}
+
+// ➕ إضافة لاعب
+if (message.content.startsWith('+ ')) {
+
+    const user = message.mentions.users.first();
+
+    if (!user) {
+        return message.reply(
+            '❌ الاستخدام الصحيح:\n`+ @الشخص`'
+        );
+    }
+
+    return games.addPlayer(message, user);
+}
+
+// 🛑 توقيف اللعبة
+if (message.content === 'توقيف') {
+    return games.stopGame(message);
+}
+    
 });
 
 
