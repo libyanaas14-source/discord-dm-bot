@@ -2596,4 +2596,247 @@ client.on('messageCreate', async (message) => {
         return message.reply(`💼 وظيفتك: **${job}**`);
     }
 });
+// 🎮 أوامر ترفيهية متنوعة
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    const command = message.content.trim().split(/\s+/)[0].toLowerCase();
+
+    // 🎭 طبع
+    if (command === 'طبع') {
+        const list = ['هادئ 😎', 'مجنون 😂', 'غامض 👀', 'اجتماعي 🗣️', 'عصبي 😤', 'مرح 🤣'];
+        return message.reply(`🎭 طبعك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 👤 شخصية
+    if (command === 'شخصية') {
+        const list = ['القائد 👑', 'المغامر ⚡', 'المفكر 🧠', 'المبدع 🎨', 'المحارب ⚔️', 'الغامض 🥷'];
+        return message.reply(`👤 شخصيتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 😎 ستايل
+    if (command === 'ستايل') {
+        const list = ['كاجوال 👕', 'فاخر 🕴️', 'رياضي 🏃', 'كلاسيك 🎩', 'غامض 🖤', 'فخم 👑'];
+        return message.reply(`😎 ستايلك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🔥 كاريزما
+    if (command === 'كاريزما') {
+        return message.reply(`🔥 كاريزمتك: **${Math.floor(Math.random() * 101)}%**`);
+    }
+
+    // ✨ جاذبية
+    if (command === 'جاذبية') {
+        return message.reply(`✨ جاذبيتك: **${Math.floor(Math.random() * 101)}%**`);
+    }
+
+    // 👑 حضور
+    if (command === 'حضور') {
+        return message.reply(`👑 قوة حضورك: **${Math.floor(Math.random() * 101)}%**`);
+    }
+
+    // 🔥 حماس
+    if (command === 'حماس') {
+        return message.reply(`🔥 مستوى حماسك: **${Math.floor(Math.random() * 101)}%**`);
+    }
+
+    // 🌞 تفاؤل
+    if (command === 'تفاؤل') {
+        return message.reply(`🌞 نسبة تفاؤلك: **${Math.floor(Math.random() * 101)}%**`);
+    }
+
+    // 🌑 تشاؤم
+    if (command === 'تشاؤم') {
+        return message.reply(`🌑 نسبة تشاؤمك: **${Math.floor(Math.random() * 101)}%**`);
+    }
+
+    // 👀 مين
+    if (command === 'مين') {
+        const member = message.guild?.members.cache
+            .filter(m => !m.user.bot)
+            .random();
+
+        if (!member) return message.reply('ما لقيتش عضو 😂');
+
+        return message.reply(`👀 أختار: ${member}`);
+    }
+
+    // 🎯 اختار
+    if (command === 'اختار') {
+        const choices = message.content.trim().split(/\s+/).slice(1);
+
+        if (choices.length < 2) {
+            return message.reply('اكتب خيارين أو أكثر، مثال: `اختار احمر ازرق`');
+        }
+
+        return message.reply(`🎯 أختار: **${choices[Math.floor(Math.random() * choices.length)]}**`);
+    }
+
+    // 🔮 توقع
+    if (command === 'توقع') {
+        const list = [
+            'اليوم بيصير معاك شيء حلو ✨',
+            'عندك خبر ممتاز قريب 🔥',
+            'بتقابل شخص ما شفته من زمان 👀',
+            'اليوم يومك 🍀',
+            'خلّيك هادي، القادم أفضل 😎'
+        ];
+
+        return message.reply(`🔮 **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // ⚖️ قرار
+    if (command === 'قرار') {
+        return message.reply(
+            `⚖️ القرار: **${Math.random() < 0.5 ? 'نعم ✅' : 'لا ❌'}**`
+        );
+    }
+
+    // 💭 رأي
+    if (command === 'رأي') {
+        const list = ['ممتاز 🔥', 'عادي 😐', 'فكرة حلوة 👌', 'ما ننصحش 😂', 'جامد جدًا 😎'];
+        return message.reply(`💭 رأيي: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // ❓ سؤال
+    if (command === 'سؤال') {
+        const list = [
+            'شن أكثر شيء تحبه؟ ❤️',
+            'شن أكثر لعبة تلعبها؟ 🎮',
+            'شن أكثر شيء يضحكك؟ 😂',
+            'لو تقدر تسافر، وين تمشي؟ ✈️',
+            'شن حلمك؟ 🌟'
+        ];
+
+        return message.reply(`❓ ${list[Math.floor(Math.random() * list.length)]}`);
+    }
+
+    // 🗣️ جواب
+    if (command === 'جواب') {
+        const list = ['أكيد 😎', 'مستحيل 😂', 'ممكن 🤔', 'طبعًا 🔥', 'ما نعرفش 👀'];
+        return message.reply(`🗣️ **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // ⚡ سرعة
+    if (command === 'سرعة') {
+        return message.reply(`⚡ سرعتك: **${Math.floor(Math.random() * 101)}%**`);
+    }
+
+    // 😂 ردة
+    if (command === 'ردة') {
+        const list = ['😂 ضحك', '😱 صدمة', '💀 موت', '😎 عادي', '🤨 استغراب'];
+        return message.reply(`😂 ردة فعلك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🚨 فضيحة
+    if (command === 'فضيحة') {
+        const list = [
+            'تدخل وتشوف الرسالة وتطلع بدون رد 😂',
+            'تقول دقيقة وترجع بعد ساعتين 💀',
+            'تفتح الديسكورد بدون سبب كل 5 دقائق 😂',
+            'تقول آخر قيم وبعدها تلعب 3 ساعات 🎮'
+        ];
+
+        return message.reply(`🚨 فضيحتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🌀 ورطة
+    if (command === 'ورطة') {
+        const list = [
+            'دخلت روم غلط 💀',
+            'رسلت الرسالة للشخص الغلط 😂',
+            'نسيت المايك مفتوح 🎤',
+            'قلت شيء وسويت نفسك ما قلت شيء 😭'
+        ];
+
+        return message.reply(`🌀 ورطتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🤥 كذبة
+    if (command === 'كذبة') {
+        const list = [
+            'والله آخر قيم 😂',
+            'بدخل خمس دقايق بس 💀',
+            'ما كنت فاتح الديسكورد 👀',
+            'نسيت أرد عليك 😭'
+        ];
+
+        return message.reply(`🤥 كذبتك المشهورة: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 📝 عذر
+    if (command === 'عذر') {
+        const list = [
+            'النت فصل 😭',
+            'الجوال علق 💀',
+            'كنت مشغول 😂',
+            'ما شفت الرسالة 👀',
+            'كنت نايم 😴'
+        ];
+
+        return message.reply(`📝 عذرك اليوم: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // ⚖️ عقوبة
+    if (command === 'عقوبة') {
+        const list = [
+            'غيّر صورتك لمدة ساعة 😂',
+            'اكتب "أنا بريء" 5 مرات 💀',
+            'غيّر اسمك لدقيقة 🤣',
+            'اسكت 5 دقائق 🤐'
+        ];
+
+        return message.reply(`⚖️ عقوبتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🚨 تهمتك
+    if (command === 'تهمتك') {
+        const list = [
+            'الإزعاج المتعمد 😂',
+            'سرقة الضحكات 💀',
+            'الاختفاء بدون سبب 👀',
+            'كثرة الكلام 🤣',
+            'الفخامة الزائدة 👑'
+        ];
+
+        return message.reply(`🚨 تهمتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🎨 لون
+    if (command === 'لون') {
+        const list = ['أحمر ❤️', 'أزرق 💙', 'بنفسجي 💜', 'أسود 🖤', 'أخضر 💚', 'أبيض 🤍'];
+        return message.reply(`🎨 لونك اليوم: **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🔢 رقمك
+    if (command === 'رقمك') {
+        return message.reply(`🔢 رقمك اليوم: **${Math.floor(Math.random() * 1000) + 1}**`);
+    }
+
+    // 📅 يومك
+    if (command === 'يومك') {
+        const list = [
+            'يوم ممتاز 🌟',
+            'يوم عادي 😐',
+            'يوم مليان مفاجآت 👀',
+            'يوم رايق 😎',
+            'يومك يحتاج قهوة ☕'
+        ];
+
+        return message.reply(`📅 **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+
+    // 🔮 طالع
+    if (command === 'طالع') {
+        const list = [
+            'الخير جايك ✨',
+            'عندك مفاجأة قريبة 👀',
+            'الحظ واقف معاك 🍀',
+            'خليك مركز اليوم 🎯',
+            'اليوم مناسب للبداية 🔥'
+        ];
+
+        return message.reply(`🔮 **${list[Math.floor(Math.random() * list.length)]}**`);
+    }
+});
 client.login(process.env.TOKEN);
