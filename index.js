@@ -2595,5 +2595,27 @@ client.on('messageCreate', async (message) => {
         const job = jobs[Math.floor(Math.random() * jobs.length)];
         return message.reply(`💼 وظيفتك: **${job}**`);
     }
+    // ==============================
+// ❤️ أمر الحب
+// ==============================
+if (message.content.startsWith('حب ')) {
+
+    const targetId = '1552335485924278364';
+    const ownerId = '1476270096296050730';
+
+    const mentionedUser = message.mentions.users.first();
+
+    if (!mentionedUser) {
+        return message.reply('❌ منشن الشخص أولاً.');
+    }
+
+    if (mentionedUser.id !== targetId) {
+        return message.reply('❌ هذا الشخص مش متاح في أمر الحب.');
+    }
+
+    return message.reply(
+        `♥️ نسبة الحب بين <@${ownerId}> و <@${targetId}> ✨ هي 100%`
+    );
+}
 });
 client.login(process.env.TOKEN);
