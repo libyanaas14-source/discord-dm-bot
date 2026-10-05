@@ -1455,5 +1455,6 @@ module.exports = {
     startGame,
     gamesList,
     lobbyButtons,
+    updateLobby,
     getActiveGame: () => activeGame
 };
