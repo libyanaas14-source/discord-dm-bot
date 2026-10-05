@@ -2260,18 +2260,29 @@ client.on('messageCreate', async (message) => {
             );
         }
     }
-client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
-
-    // آيدي الشخص المسموح له
-    if (message.author.id !== '1552335485924278364') return;
-
-    // يلتقط كلمة سلطعوني حتى لو معها كلام قبل/بعد
-    if (message.content.includes('سلطعوني')) {
-        await message.reply('الا سلطان ياض');
-    }
-
 });
 
+// 🦀 رد خاص على تصريفات كلمة سلطعون
+client.on('messageCreate', async (message) => {
+    // تجاهل رسائل البوتات
+    if (message.author.bot) return;
 
+    // الآيدي المسموح له باستخدام الأمر
+    if (message.author.id !== '1552335485924278364') return;
+
+    // تنظيف النص
+    const text = message.content
+        .replace(/ـ/g, '')      // حذف التطويل
+        .replace(/ى/g, 'ي')     // توحيد ى → ي
+        .replace(/(.)\1+/g, '$1') // تحويل التكرار مثل سلطعوووني → سلطعوني
+        .trim();
+
+    // جميع التصريفات القريبة
+    const isSultan = /سلطع(?:ون|ان)/i.test(text);
+
+    if (!isSultan) return;
+
+    // الرد
+    await message.reply('الا سلطان ياض');
+});
 client.login(process.env.TOKEN);
