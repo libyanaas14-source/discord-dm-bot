@@ -1753,6 +1753,515 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+// ============================================================
+// 💾 نظام حفظ وتطبيق السيرفر
+// 👑 صاحب السيرفر فقط
+// ============================================================
+
+const BACKUP_FILE = './server_backups.json';
+const BACKUP_OWNER_ID = '1476270096296050730';
+
+// قراءة النسخ المحفوظة
+function loadBackups() {
+    if (!fs.existsSync(BACKUP_FILE)) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf8'));
+    } catch {
+        return {};
+    }
+}
+
+// حفظ النسخ
+function saveBackups(data) {
+    fs.writeFileSync(
+        BACKUP_FILE,
+        JSON.stringify(data, null, 2)
+    );
+}
+
+
+// ============================================================
+// 💾 حفظ السيرفر
+// الاستخدام:
+// حفظ SERVER_ID
+// ============================================================
+
+client.on('messageCreate', async (message) => {
+
+    if (message.author.bot) return;
+
+    // 👑 صاحب البوت فقط
+    if (message.author.id !== BACKUP_OWNER_ID) return;
+
+
+    // ========================================================
+    // 💾 حفظ
+    // ========================================================
+
+    if (message.content.startsWith('حفظ ')) {
+
+        const sourceGuildId = message.content.slice(5).trim();
+
+        if (!sourceGuildId) {
+            return message.reply(
+                '❌ الاستخدام الصحيح:\n`حفظ SERVER_ID`'
+            );
+        }
+
+        const guild = client.guilds.cache.get(sourceGuildId);
+
+        if (!guild) {
+            return message.reply(
+                '❌ البوت مش موجود في السيرفر بهذا الـ ID.'
+            );
+        }
+
+        try {
+
+            await guild.roles.fetch();
+            await guild.channels.fetch();
+            await guild.members.fetch();
+
+            // -------------------------------
+            // 👑 حفظ الرتب
+            // -------------------------------
+
+            const roles = guild.roles.cache
+                .filter(role => !role.managed)
+                .map(role => ({
+                    id: role.id,
+                    name: role.name,
+                    color: role.color,
+                    hoist: role.hoist,
+                    mentionable: role.mentionable,
+                    position: role.position,
+                    permissions: role.permissions.bitfield.toString()
+                }));
+
+
+            // -------------------------------
+            // 🏠 حفظ الرومات
+            // -------------------------------
+
+            const channels = guild.channels.cache
+                .sort((a, b) => a.rawPosition - b.rawPosition)
+                .map(channel => ({
+
+                    id: channel.id,
+                    name: channel.name,
+                    type: channel.type,
+                    position: channel.rawPosition,
+
+                    parentId: channel.parentId || null,
+
+                    topic:
+                        'topic' in channel
+                            ? channel.topic
+                            : null,
+
+                    nsfw:
+                        'nsfw' in channel
+                            ? channel.nsfw
+                            : false,
+
+                    rateLimitPerUser:
+                        'rateLimitPerUser' in channel
+                            ? channel.rateLimitPerUser
+                            : 0,
+
+                    bitrate:
+                        'bitrate' in channel
+                            ? channel.bitrate
+                            : null,
+
+                    userLimit:
+                        'userLimit' in channel
+                            ? channel.userLimit
+                            : null,
+
+                    permissionOverwrites:
+                        channel.permissionOverwrites.cache.map(overwrite => ({
+                            id: overwrite.id,
+                            type: overwrite.type,
+                            allow: overwrite.allow.bitfield.toString(),
+                            deny: overwrite.deny.bitfield.toString()
+                        }))
+
+                }));
+
+
+            // -------------------------------
+            // 🤖 حفظ البوتات
+            // -------------------------------
+
+            const bots = guild.members.cache
+                .filter(member => member.user.bot)
+                .map(member => ({
+                    id: member.id,
+                    username: member.user.username,
+                    tag: member.user.tag
+                }));
+
+
+            // -------------------------------
+            // 💾 إنشاء النسخة
+            // -------------------------------
+
+            const backups = loadBackups();
+
+            backups[sourceGuildId] = {
+                guildId: guild.id,
+                guildName: guild.name,
+                savedAt: new Date().toISOString(),
+
+                roles,
+                channels,
+                bots
+            };
+
+            saveBackups(backups);
+
+
+            return message.reply(
+                `✅ تم حفظ السيرفر بنجاح!\n\n` +
+                `🏠 السيرفر: **${guild.name}**\n` +
+                `🎭 الرتب: **${roles.length}**\n` +
+                `📁 الرومات: **${channels.length}**\n` +
+                `🤖 البوتات: **${bots.length}**`
+            );
+
+        } catch (error) {
+
+            console.error('BACKUP SAVE ERROR:', error);
+
+            return message.reply(
+                '❌ صار خطأ أثناء حفظ السيرفر.'
+            );
+        }
+    }
+
+
+    // ========================================================
+    // 📦 تطبيق النسخة
+    // الاستخدام:
+    // تطبيق SERVER_ID
+    // ========================================================
+
+    if (message.content.startsWith('تطبيق ')) {
+
+        const backupGuildId = message.content.slice(7).trim();
+
+        if (!backupGuildId) {
+            return message.reply(
+                '❌ الاستخدام الصحيح:\n`تطبيق SERVER_ID`'
+            );
+        }
+
+        const backups = loadBackups();
+        const backup = backups[backupGuildId];
+
+        if (!backup) {
+            return message.reply(
+                '❌ مفيش نسخة محفوظة بهذا الـ ID.'
+            );
+        }
+
+        const targetGuild = message.guild;
+
+        if (!targetGuild) {
+            return message.reply(
+                '❌ الأمر لازم تستخدمه داخل سيرفر.'
+            );
+        }
+
+        try {
+
+            await targetGuild.roles.fetch();
+            await targetGuild.channels.fetch();
+
+
+            // =================================================
+            // 🎭 إنشاء الرتب
+            // =================================================
+
+            const roleMap = {};
+
+            // @everyone
+            roleMap[backupGuildId] = targetGuild.roles.everyone.id;
+
+            for (const savedRole of backup.roles) {
+
+                if (savedRole.name === '@everyone') continue;
+
+                let targetRole = targetGuild.roles.cache.find(
+                    role =>
+                        !role.managed &&
+                        role.name === savedRole.name
+                );
+
+                if (!targetRole) {
+
+                    targetRole = await targetGuild.roles.create({
+                        name: savedRole.name,
+                        color: savedRole.color,
+                        hoist: savedRole.hoist,
+                        mentionable: savedRole.mentionable,
+                        permissions: BigInt(savedRole.permissions),
+                        reason: 'Server Backup Restore'
+                    });
+
+                } else {
+
+                    await targetRole.edit({
+                        color: savedRole.color,
+                        hoist: savedRole.hoist,
+                        mentionable: savedRole.mentionable,
+                        permissions: BigInt(savedRole.permissions),
+                        reason: 'Server Backup Restore'
+                    });
+
+                }
+
+                roleMap[savedRole.id] = targetRole.id;
+            }
+
+
+            // =================================================
+            // 📂 إنشاء التصنيفات أولاً
+            // =================================================
+
+            const channelMap = {};
+
+            const categories = backup.channels
+                .filter(channel => channel.type === 4)
+                .sort((a, b) => a.position - b.position);
+
+            for (const savedChannel of categories) {
+
+                let targetChannel = targetGuild.channels.cache.find(
+                    channel =>
+                        channel.name === savedChannel.name &&
+                        channel.type === savedChannel.type
+                );
+
+                if (!targetChannel) {
+
+                    targetChannel =
+                        await targetGuild.channels.create({
+                            name: savedChannel.name,
+                            type: savedChannel.type,
+                            reason: 'Server Backup Restore'
+                        });
+
+                }
+
+                channelMap[savedChannel.id] = targetChannel.id;
+            }
+
+
+            // =================================================
+            // 🏠 إنشاء باقي الرومات
+            // =================================================
+
+            const normalChannels = backup.channels
+                .filter(channel => channel.type !== 4)
+                .sort((a, b) => a.position - b.position);
+
+            for (const savedChannel of normalChannels) {
+
+                let targetChannel = targetGuild.channels.cache.find(
+                    channel =>
+                        channel.name === savedChannel.name &&
+                        channel.type === savedChannel.type
+                );
+
+                if (!targetChannel) {
+
+                    const options = {
+                        name: savedChannel.name,
+                        type: savedChannel.type,
+                        reason: 'Server Backup Restore'
+                    };
+
+                    if (
+                        savedChannel.parentId &&
+                        channelMap[savedChannel.parentId]
+                    ) {
+                        options.parent =
+                            channelMap[savedChannel.parentId];
+                    }
+
+                    if (
+                        savedChannel.topic !== null &&
+                        (
+                            savedChannel.type === 0 ||
+                            savedChannel.type === 5
+                        )
+                    ) {
+                        options.topic = savedChannel.topic;
+                    }
+
+                    if (savedChannel.nsfw !== undefined) {
+                        options.nsfw = savedChannel.nsfw;
+                    }
+
+                    if (savedChannel.rateLimitPerUser !== undefined) {
+                        options.rateLimitPerUser =
+                            savedChannel.rateLimitPerUser;
+                    }
+
+                    if (
+                        savedChannel.bitrate &&
+                        (
+                            savedChannel.type === 2 ||
+                            savedChannel.type === 13
+                        )
+                    ) {
+                        options.bitrate =
+                            savedChannel.bitrate;
+                    }
+
+                    if (
+                        savedChannel.userLimit !== null &&
+                        (
+                            savedChannel.type === 2 ||
+                            savedChannel.type === 13
+                        )
+                    ) {
+                        options.userLimit =
+                            savedChannel.userLimit;
+                    }
+
+                    targetChannel =
+                        await targetGuild.channels.create(options);
+
+                } else {
+
+                    // نقل للروم داخل التصنيف الصحيح
+                    if (
+                        savedChannel.parentId &&
+                        channelMap[savedChannel.parentId]
+                    ) {
+                        await targetChannel.setParent(
+                            channelMap[savedChannel.parentId],
+                            {
+                                lockPermissions: false
+                            }
+                        ).catch(() => {});
+                    }
+
+                    await targetChannel.setPosition(
+                        savedChannel.position
+                    ).catch(() => {});
+                }
+
+                channelMap[savedChannel.id] = targetChannel.id;
+
+
+                // =================================================
+                // 🔐 تطبيق صلاحيات الروم
+                // =================================================
+
+                if (savedChannel.permissionOverwrites) {
+
+                    for (
+                        const overwrite
+                        of savedChannel.permissionOverwrites
+                    ) {
+
+                        let targetId = null;
+
+                        // رتبة @everyone
+                        if (overwrite.id === backupGuildId) {
+
+                            targetId =
+                                targetGuild.roles.everyone.id;
+
+                        }
+
+                        // رتبة عادية
+                        else if (roleMap[overwrite.id]) {
+
+                            targetId =
+                                roleMap[overwrite.id];
+
+                        }
+
+                        // تجاهل صلاحيات الأعضاء لأن IDs
+                        // الأعضاء ممكن تختلف بين السيرفرات
+                        if (!targetId) continue;
+
+                        await targetChannel.permissionOverwrites
+                            .edit(targetId, {
+                                allow: BigInt(overwrite.allow),
+                                deny: BigInt(overwrite.deny)
+                            })
+                            .catch(() => {});
+                    }
+                }
+            }
+
+
+            // =================================================
+            // 🔢 ترتيب الرتب
+            // =================================================
+
+            const rolePositions = backup.roles
+                .filter(role => role.name !== '@everyone')
+                .sort((a, b) => a.position - b.position);
+
+            for (const savedRole of rolePositions) {
+
+                if (!roleMap[savedRole.id]) continue;
+
+                await targetGuild.roles
+                    .setPositions([
+                        {
+                            role: roleMap[savedRole.id],
+                            position: savedRole.position
+                        }
+                    ])
+                    .catch(() => {});
+            }
+
+
+            // =================================================
+            // 🤖 البوتات
+            // =================================================
+
+            let botText = '';
+
+            if (backup.bots.length > 0) {
+
+                botText =
+                    `\n\n🤖 **البوتات المحفوظة:** ${backup.bots.length}\n` +
+                    `⚠️ البوتات لا يمكن للبوت الحالي إدخالها تلقائيًا للسيرفر.`;
+            }
+
+
+            return message.reply(
+                `✅ تم تطبيق النسخة بنجاح!\n\n` +
+                `📦 النسخة: **${backup.guildName}**\n` +
+                `🎭 الرتب: **${backup.roles.length}**\n` +
+                `📁 الرومات: **${backup.channels.length}**` +
+                botText
+            );
+
+        } catch (error) {
+
+            console.error('BACKUP APPLY ERROR:', error);
+
+            return message.reply(
+                '❌ صار خطأ أثناء تطبيق النسخة.\n' +
+                'شوف Console في Render لمعرفة الخطأ.'
+            );
+        }
+    }
+
+});
 
 
 client.login(process.env.TOKEN);
