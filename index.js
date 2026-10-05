@@ -2287,5 +2287,27 @@ client.on('messageCreate', async (message) => {
         await message.reply('**لسانك ليوحشك يا بت**');
     }
 });
+// ❤️ أمر الحب
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    if (!message.content.toLowerCase().startsWith('حب')) return;
+
+    const user = message.mentions.users.first();
+
+    if (!user) {
+        return message.reply('❤️ منشن شخص عشان أحسب نسبة الحب بينكم!');
+    }
+
+    if (user.id === message.author.id) {
+        return message.reply('😂 تحب نفسك؟');
+    }
+
+    const love = Math.floor(Math.random() * 101);
+
+    await message.reply(
+        `❤️ نسبة الحب بين <@${message.author.id}> و <@${user.id}> هي **${love}%**`
+    );
+});
 
 client.login(process.env.TOKEN);
