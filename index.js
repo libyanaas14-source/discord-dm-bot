@@ -1509,7 +1509,249 @@ if (message.content === 'توقيف') {
 }
     
 });
+// ============================================================
+// 🎮 تفاعل أزرار نظام الألعاب
+// ============================================================
 
+client.on('interactionCreate', async interaction => {
+
+    if (!interaction.isButton()) return;
+
+    const game = games.getActiveGame();
+
+    if (!game) {
+        return interaction.reply({
+            content: '❌ مفيش لعبة شغالة حاليًا.',
+            ephemeral: true
+        });
+    }
+
+    if (interaction.channelId !== game.channelId) {
+        return interaction.reply({
+            content: '❌ اللعبة موجودة في روم ثاني.',
+            ephemeral: true
+        });
+    }
+
+    // 🎮 دخول
+    if (interaction.customId === 'games_join') {
+
+        if (game.started) {
+            return interaction.reply({
+                content: '❌ اللعبة بدأت بالفعل.',
+                ephemeral: true
+            });
+        }
+
+        if (game.players.has(interaction.user.id)) {
+            return interaction.reply({
+                content: '❌ أنت داخل اللعبة بالفعل.',
+                ephemeral: true
+            });
+        }
+
+        if (game.players.size >= 300) {
+            return interaction.reply({
+                content: '❌ اللعبة وصلت للحد الأقصى.',
+                ephemeral: true
+            });
+        }
+
+        game.players.set(
+            interaction.user.id,
+            interaction.user
+        );
+
+        await games.updateLobby(interaction.channel);
+
+        return interaction.reply({
+            content: '✅ دخلت اللعبة!',
+            ephemeral: true
+        });
+    }
+
+    // 🚪 خروج
+    if (interaction.customId === 'games_leave') {
+
+        if (game.started) {
+            return interaction.reply({
+                content: '❌ اللعبة بدأت بالفعل.',
+                ephemeral: true
+            });
+        }
+
+        if (interaction.user.id === game.hostId) {
+            return interaction.reply({
+                content: '❌ صاحب اللعبة ما يقدرش يطلع.',
+                ephemeral: true
+            });
+        }
+
+        if (!game.players.has(interaction.user.id)) {
+            return interaction.reply({
+                content: '❌ أنت مش داخل اللعبة.',
+                ephemeral: true
+            });
+        }
+
+        game.players.delete(interaction.user.id);
+
+        await games.updateLobby(interaction.channel);
+
+        return interaction.reply({
+            content: '🚪 طلعت من اللعبة.',
+            ephemeral: true
+        });
+    }
+
+    // 👥 اللاعبين
+    if (interaction.customId === 'games_players') {
+
+        const players = [...game.players.values()];
+
+        const list = players.length
+            ? players
+                .map((user, i) =>
+                    `${i + 1}. <@${user.id}>`
+                )
+                .join('\n')
+            : 'لا يوجد لاعبين.';
+
+        return interaction.reply({
+            content:
+                `👥 **لاعبي اللعبة:**\n\n${list}`,
+            ephemeral: true
+        });
+    }
+
+    // ▶️ بدء اللعبة
+    if (interaction.customId === 'games_start') {
+
+        if (interaction.user.id !== game.hostId) {
+            return interaction.reply({
+                content: '❌ فقط صاحب اللعبة يقدر يبدأها.',
+                ephemeral: true
+            });
+        }
+
+        if (game.started) {
+            return interaction.reply({
+                content: '❌ اللعبة بدأت بالفعل.',
+                ephemeral: true
+            });
+        }
+
+        if (game.players.size < 2) {
+            return interaction.reply({
+                content: '❌ لازم يكون فيه لاعبين على الأقل.',
+                ephemeral: true
+            });
+        }
+
+        game.started = true;
+
+        await interaction.update({
+            content: '🎮 **بدأت اللعبة!**',
+            embeds: [],
+            components: []
+        });
+
+        return games.startGame(interaction.channel);
+    }
+
+    // ✊ حجر ورقة مقص
+    if (
+        interaction.customId === 'rps_rock' ||
+        interaction.customId === 'rps_paper' ||
+        interaction.customId === 'rps_scissors'
+    ) {
+
+        if (game.name !== 'حجر') return;
+
+        if (!game.started) {
+            return interaction.reply({
+                content: '❌ اللعبة ما بدأتش.',
+                ephemeral: true
+            });
+        }
+
+        if (!game.players.has(interaction.user.id)) {
+            return interaction.reply({
+                content: '❌ أنت مش لاعب في اللعبة.',
+                ephemeral: true
+            });
+        }
+
+        if (!game.data.rps) {
+            return interaction.reply({
+                content: '❌ اللعبة ما بدأتش بعد.',
+                ephemeral: true
+            });
+        }
+
+        if (game.data.rps.has(interaction.user.id)) {
+            return interaction.reply({
+                content: '❌ اخترت بالفعل.',
+                ephemeral: true
+            });
+        }
+
+        const choice =
+            interaction.customId === 'rps_rock'
+                ? 'rock'
+                : interaction.customId === 'rps_paper'
+                    ? 'paper'
+                    : 'scissors';
+
+        game.data.rps.set(
+            interaction.user.id,
+            choice
+        );
+
+        await interaction.reply({
+            content: '✅ تم تسجيل اختيارك!',
+            ephemeral: true
+        });
+
+        if (game.data.rps.size === 2) {
+
+            const players = [
+                ...game.players.values()
+            ];
+
+            const a =
+                game.data.rps.get(players[0].id);
+
+            const b =
+                game.data.rps.get(players[1].id);
+
+            let result;
+
+            if (a === b) {
+                result = '🤝 **تعادل!**';
+            } else if (
+                (a === 'rock' && b === 'scissors') ||
+                (a === 'paper' && b === 'rock') ||
+                (a === 'scissors' && b === 'paper')
+            ) {
+                result =
+                    `🏆 الفائز: ${mention(players[0].id)}`;
+            } else {
+                result =
+                    `🏆 الفائز: ${mention(players[1].id)}`;
+            }
+
+            await interaction.channel.send(
+                `✊📄✂️ **نتيجة حجر ورقة مقص**\n\n` +
+                `${mention(players[0].id)} اختار **${a}**\n` +
+                `${mention(players[1].id)} اختار **${b}**\n\n` +
+                result
+            );
+
+            game.started = false;
+        }
+    }
+});
 
 
 
