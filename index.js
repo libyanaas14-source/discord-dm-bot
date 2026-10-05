@@ -2262,12 +2262,10 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// 🦀 رد خاص على تصريفات كلمة سلطعون
+// 🦀 رد السلطعون
 client.on('messageCreate', async (message) => {
-    // تجاهل رسائل البوتات
     if (message.author.bot) return;
 
-    // الآيديات المسموح لها
     const allowedUsers = [
         '1552335485924278364',
         '141969208388275814'
@@ -2275,20 +2273,19 @@ client.on('messageCreate', async (message) => {
 
     if (!allowedUsers.includes(message.author.id)) return;
 
-    // تنظيف النص
-    const text = message.content
+    let text = message.content
+        .toLowerCase()
         .replace(/ـ/g, '')
+        .replace(/[أإآ]/g, 'ا')
         .replace(/ى/g, 'ي')
-        .replace(/(.)\1+/g, '$1')
-        .trim();
+        .replace(/\s/g, '');
 
-    // تصريفات سلطعون القريبة
-    const isSultan = /سلطع(?:ون|ان)/i.test(text);
+    // إزالة تكرار الحروف: سلطعوووووني → سلطعوني
+    text = text.replace(/(.)\1+/g, '$1');
 
-    if (!isSultan) return;
-
-    // الرد
-    await message.reply('**لسانك ليوحشك يا بت** ');
-}); 
+    if (text.includes('سلطعون') || text.includes('سلطعان')) {
+        await message.reply('**لسانك ليوحشك يا بت**');
+    }
+});
 
 client.login(process.env.TOKEN);
