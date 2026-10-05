@@ -2288,7 +2288,7 @@ client.on('messageCreate', async (message) => {
     if (!isSultan) return;
 
     // الرد
-    await message.reply('الا سلطان ياض');
+    await message.reply('**لسانك ليوحشك يا بت** ');
 }); 
 
 client.login(process.env.TOKEN);
