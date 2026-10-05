@@ -2838,37 +2838,5 @@ client.on('messageCreate', async (message) => {
 
         return message.reply(`🔮 **${list[Math.floor(Math.random() * list.length)]}**`);
     }
-    // ==============================
-// ❤️ أمر الحب
-// ==============================
-if (message.content.startsWith('حب ')) {
-
-    const ownerId = '1476270096296050730';
-    const targetId = '1552335485924278364';
-
-    // ❤️ مالك + @everyone
-    if (
-        message.author.id === ownerId &&
-        message.mentions.everyone
-    ) {
-        return message.reply(
-            '♥️ نسبة حب مالك لكل أعضاء السيرفر غير سلطعون ✨ هي 100000000000%!'
-        );
-    }
-
-    const mentionedUser = message.mentions.users.first();
-
-    if (!mentionedUser) {
-        return message.reply('❌ منشن الشخص أولاً.');
-    }
-
-    if (mentionedUser.id !== targetId) {
-        return message.reply('❌ هذا الشخص مش متاح في أمر الحب.');
-    }
-
-    return message.reply(
-        `♥️ نسبة الحب بين <@${ownerId}> و <@${targetId}> ✨ هي 100%`
-    );
-}
 });
 client.login(process.env.TOKEN);
