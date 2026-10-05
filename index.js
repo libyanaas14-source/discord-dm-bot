@@ -2260,6 +2260,16 @@ client.on('messageCreate', async (message) => {
             );
         }
     }
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    // آيدي الشخص المسموح له
+    if (message.author.id !== '1552335485924278364') return;
+
+    // يلتقط كلمة سلطعوني حتى لو معها كلام قبل/بعد
+    if (message.content.includes('سلطعوني')) {
+        await message.reply('الا سلطان ياض');
+    }
 
 });
 
