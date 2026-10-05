@@ -2438,4 +2438,162 @@ client.on('messageCreate', async (message) => {
         );
     }
 });
+// 🎭 أوامر ترفيهية جديدة
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    const args = message.content.trim().split(/\s+/);
+    const command = args[0].toLowerCase();
+    const user = message.mentions.users.first();
+
+    // ❤️ عشق
+    if (command === 'عشق') {
+        const percent = Math.floor(Math.random() * 101);
+        return message.reply(`❤️ نسبة العشق اليوم: **${percent}%**`);
+    }
+
+    // 👀 غيرة
+    if (command === 'غيرة') {
+        const percent = Math.floor(Math.random() * 101);
+        return message.reply(`👀 نسبة غيرتك: **${percent}%**`);
+    }
+
+    // 🥀 حنين
+    if (command === 'حنين') {
+        const percent = Math.floor(Math.random() * 101);
+        return message.reply(`🥀 نسبة الحنين: **${percent}%**`);
+    }
+
+    // 🤍 وفاء
+    if (command === 'وفاء') {
+        const percent = Math.floor(Math.random() * 101);
+        return message.reply(`🤍 نسبة الوفاء: **${percent}%**`);
+    }
+
+    // 💗 شوق
+    if (command === 'شوق') {
+        const percent = Math.floor(Math.random() * 101);
+        return message.reply(`💗 نسبة الشوق: **${percent}%**`);
+    }
+
+    // 😶 مزاج
+    if (command === 'مزاج') {
+        const moods = [
+            'رايق 😎',
+            'مبسوط 😂',
+            'معصب 😤',
+            'نايم 😴',
+            'مروق ☕',
+            'طفشان 🥱',
+            'متحمس 🔥'
+        ];
+
+        const mood = moods[Math.floor(Math.random() * moods.length)];
+        return message.reply(`😶 مزاجك اليوم: **${mood}**`);
+    }
+
+    // ⚡ طاقة
+    if (command === 'طاقة') {
+        const percent = Math.floor(Math.random() * 101);
+        return message.reply(`⚡ مستوى طاقتك: **${percent}%**`);
+    }
+
+    // 😈 جرأة
+    if (command === 'جرأة') {
+        const percent = Math.floor(Math.random() * 101);
+        return message.reply(`😈 نسبة جرأتك: **${percent}%**`);
+    }
+
+    // 🤫 سر
+    if (command === 'سر') {
+        const secrets = [
+            'أنت أكثر شخص مراقب في السيرفر 👀',
+            'في شخص يراقبك من بعيد 😂',
+            'عندك سر بس حتى أنت ناسيه 💀',
+            'البوت يعرف أكثر منك 🤫',
+            'ما نقدرش نقول... سر 🤐'
+        ];
+
+        const secret = secrets[Math.floor(Math.random() * secrets.length)];
+        return message.reply(`🤫 **${secret}**`);
+    }
+
+    // 👑 لقب
+    if (command === 'لقب') {
+        const titles = [
+            'ملك الهيبة 👑',
+            'صاحب الفخامة 🔥',
+            'الأسطورة 🐐',
+            'المهيب 😎',
+            'الزعيم 🫡',
+            'الخطير 💀',
+            'المحترف 🎯'
+        ];
+
+        const title = titles[Math.floor(Math.random() * titles.length)];
+        return message.reply(`👑 لقبك: **${title}**`);
+    }
+
+    // ✨ ميزة
+    if (command === 'ميزة') {
+        const features = [
+            'ذكاؤك 🧠',
+            'فخامتك 👑',
+            'روحك المرحة 😂',
+            'هدوءك 😎',
+            'ثقتك بنفسك 🔥',
+            'طيبة قلبك ❤️'
+        ];
+
+        const feature = features[Math.floor(Math.random() * features.length)];
+        return message.reply(`✨ ميزتك: **${feature}**`);
+    }
+
+    // 🐾 حيوان
+    if (command === 'حيوان') {
+        const animals = [
+            'أسد 🦁',
+            'نمر 🐯',
+            'ذئب 🐺',
+            'صقر 🦅',
+            'ثعلب 🦊',
+            'باندا 🐼',
+            'قط 🐱'
+        ];
+
+        const animal = animals[Math.floor(Math.random() * animals.length)];
+        return message.reply(`🐾 حيوان شخصيتك: **${animal}**`);
+    }
+
+    // 🍔 أكلة
+    if (command === 'أكلة') {
+        const foods = [
+            'بيتزا 🍕',
+            'برجر 🍔',
+            'مكرونة 🍝',
+            'شاورما 🌯',
+            'دجاج 🍗',
+            'بيتزا 🍕'
+        ];
+
+        const food = foods[Math.floor(Math.random() * foods.length)];
+        return message.reply(`🍽️ أكلتك اليوم: **${food}**`);
+    }
+
+    // 💼 وظيفة
+    if (command === 'وظيفة') {
+        const jobs = [
+            'مبرمج 💻',
+            'مهندس 👷',
+            'رجل أعمال 💼',
+            'مصمم 🎨',
+            'لاعب محترف 🎮',
+            'مدير 👔',
+            'صانع محتوى 🎥'
+        ];
+
+        const job = jobs[Math.floor(Math.random() * jobs.length)];
+        return message.reply(`💼 وظيفتك: **${job}**`);
+    }
+});
 client.login(process.env.TOKEN);
