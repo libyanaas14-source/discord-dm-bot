@@ -1419,7 +1419,48 @@ if (message.content.startsWith('ارسل ')) {
 const OWNER_ID = '1476270096296050730';
 const BACKUP_FILE = './server_backup.json';
 
-                
+const allowedUsers = [
+    '1489281825942667355',
+    '1476270096296050730'
+];
+
+if (message.content.startsWith('كلب ظال')) {
+
+    // التحقق من الأشخاص المسموح لهم
+    if (!allowedUsers.includes(message.author.id)) {
+        return;
+    }
+
+    // أخذ الشخص من المنشن
+    const member = message.mentions.members.first();
+
+    if (!member) {
+        return message.reply('❌ منشن الشخص أول.');
+    }
+
+    // جلب الرتبة
+    const role = message.guild.roles.cache.get('1556686406955565166');
+
+    if (!role) {
+        return message.reply('❌ الرتبة غير موجودة.');
+    }
+
+    // إعطاء الرتبة
+    try {
+        await member.roles.add(role);
+
+        await message.reply(
+            `✅ تم إعطاء ${member} الرتبة بنجاح.`
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        await message.reply(
+            '❌ ما قدرت أعطيه الرتبة، تأكد أن رتبة البوت أعلى من الرتبة.'
+        );
+    }
+}                
 });
 
 
