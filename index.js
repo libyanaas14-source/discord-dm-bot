@@ -2267,22 +2267,28 @@ client.on('messageCreate', async (message) => {
     // تجاهل رسائل البوتات
     if (message.author.bot) return;
 
-    // الآيدي المسموح له باستخدام الأمر
-    if (message.author.id !== '1552335485924278364') return;
+    // الآيديات المسموح لها
+    const allowedUsers = [
+        '1552335485924278364',
+        '141969208388275814'
+    ];
+
+    if (!allowedUsers.includes(message.author.id)) return;
 
     // تنظيف النص
     const text = message.content
-        .replace(/ـ/g, '')      // حذف التطويل
-        .replace(/ى/g, 'ي')     // توحيد ى → ي
-        .replace(/(.)\1+/g, '$1') // تحويل التكرار مثل سلطعوووني → سلطعوني
+        .replace(/ـ/g, '')
+        .replace(/ى/g, 'ي')
+        .replace(/(.)\1+/g, '$1')
         .trim();
 
-    // جميع التصريفات القريبة
+    // تصريفات سلطعون القريبة
     const isSultan = /سلطع(?:ون|ان)/i.test(text);
 
     if (!isSultan) return;
 
     // الرد
     await message.reply('الا سلطان ياض');
-});
+}); 
+
 client.login(process.env.TOKEN);
