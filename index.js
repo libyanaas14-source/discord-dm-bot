@@ -2287,198 +2287,164 @@ client.on('messageCreate', async (message) => {
         await message.reply('**لسانك ليوحشك يا بت**');
     }
 });
-// ❤️ أمر الحب
+// ==========================================
+// 🎮 نظام الأوامر الترفيهية
+// ==========================================
+
+const SUPER_LUCK_USER = '1489281825942667355';
+let superLuckEnabled = false;
+
+
+// ==========================================
+// 📩 استقبال الرسائل
+// ==========================================
+
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    if (!message.content.toLowerCase().startsWith('حب')) return;
+    const content = message.content.trim();
+    const command = content.split(/\s+/)[0].toLowerCase();
 
-    const user = message.mentions.users.first();
+    // ======================================
+    // 🍀 تفعيل الحظ الجبار
+    // ======================================
 
-    if (!user) {
-        return message.reply('❤️ منشن شخص عشان أحسب نسبة الحب بينكم!');
+    if (content === 'حظ رهيب جبار') {
+        if (message.author.id !== SUPER_LUCK_USER) return;
+
+        superLuckEnabled = true;
+
+        return message.reply('🔥🍀 تم تفعيل الحظ الرهيب الجبار!');
     }
 
-    if (user.id === message.author.id) {
-        return message.reply('😂 تحب نفسك؟');
+    // ======================================
+    // 🛑 إيقاف الحظ الجبار
+    // ======================================
+
+    if (content === 'ايقاف حظ رهيب جبار') {
+        if (message.author.id !== SUPER_LUCK_USER) return;
+
+        superLuckEnabled = false;
+
+        return message.reply('🛑🍀 تم إيقاف الحظ الرهيب الجبار.');
     }
 
-    const love = Math.floor(Math.random() * 101);
 
-    await message.reply(
-        `❤️ نسبة الحب بين <@${message.author.id}> و <@${user.id}> هي **${love}%**`
-    );
-});
-// 🎮 أوامر ترفيهية
-client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
+    // ======================================
+    // 🍀 دالة النسبة
+    // ======================================
 
-    const args = message.content.trim().split(/\s+/);
-    const command = args[0].toLowerCase();
+    function luckyPercent() {
+        // الحظ الجبار لا يعني 100% دائمًا
+        if (message.author.id === SUPER_LUCK_USER && superLuckEnabled) {
+            const lucky = Math.random();
 
-    // 🖤 كره
-    if (command === 'كره') {
-        const user = message.mentions.users.first() || message.author;
-        const percent = Math.floor(Math.random() * 101);
+            if (lucky < 0.75) {
+                return Math.floor(Math.random() * 31) + 70; // 70 - 100
+            }
 
-        return message.reply(
-            `💔 نسبة الكره بينك وبين ${user} هي **${percent}%**`
-        );
+            return Math.floor(Math.random() * 70) + 1; // نتيجة عادية أحيانًا
+        }
+
+        return Math.floor(Math.random() * 101);
     }
 
-    // 💀 نحس
-    if (command === 'نحس') {
-        const percent = Math.floor(Math.random() * 101);
 
-        return message.reply(
-            `💀 نسبة نحسك اليوم: **${percent}%**`
-        );
-    }
-
-    // 🍀 حظك
-    if (command === 'حظك') {
-        const percent = Math.floor(Math.random() * 101);
-
-        return message.reply(
-            `🍀 حظك اليوم: **${percent}%**`
-        );
-    }
-
-    // 🎭 اسم
-    if (command === 'اسم') {
-        const names = [
-            'الأسطورة',
-            'المهيب',
-            'الزعيم',
-            'المحترف',
-            'الخطير',
-            'المخيف',
-            'الوحش',
-            'الفخم',
-            'المجنون',
-            'صاحب الهيبة'
-        ];
-
-        const name = names[Math.floor(Math.random() * names.length)];
-
-        return message.reply(
-            `🎭 لقبك اليوم: **${name}**`
-        );
-    }
-
-    // ⭐ شهرة
-    if (command === 'شهرة') {
-        const percent = Math.floor(Math.random() * 101);
-
-        return message.reply(
-            `⭐ نسبة شهرتك في السيرفر: **${percent}%**`
-        );
-    }
-
-    // 🍀 حظ
-    if (command === 'حظ') {
-        const results = [
-            'محظوظ جدًا اليوم 🍀',
-            'حظك ممتاز 🔥',
-            'حظك متوسط 😐',
-            'حظك سيئ اليوم 💀',
-            'اهرب من كل شيء اليوم 😂'
-        ];
-
-        const result = results[Math.floor(Math.random() * results.length)];
-
-        return message.reply(`🍀 **${result}**`);
-    }
-
-    // 🧠 ذكاء
-    if (command === 'ذكاء') {
-        const percent = Math.floor(Math.random() * 101);
-
-        return message.reply(
-            `🧠 نسبة ذكائك: **${percent}%**`
-        );
-    }
-
-    // 🔥 روست
-    if (command === 'روست') {
-        const user = message.mentions.users.first() || message.author;
-
-        const roasts = [
-            'مستواك يحتاج تحديث 😂',
-            'حتى الحظ استسلم منك 💀',
-            'والله ما قصرت... قصرت كثير 😂',
-            'أنت سبب انخفاض مستوى السيرفر 💀',
-            'خلنا ساكتين أحسن لك 😂',
-            'عندي كلام كثير بس أخاف عليك 😭'
-        ];
-
-        const roast = roasts[Math.floor(Math.random() * roasts.length)];
-
-        return message.reply(`${user} 🔥 **${roast}**`);
-    }
-
-    // ⚖️ حكم
-    if (command === 'حكم') {
-        const user = message.mentions.users.first() || message.author;
-
-        const judgments = [
-            'مذنب بتهمة الفخامة الزائدة 👑',
-            'مذنب بتهمة الإزعاج 😂',
-            'بريء لعدم كفاية الأدلة ⚖️',
-            'مذنب ويُحكم عليه بالصمت لمدة 5 دقائق 💀',
-            'مذنب بتهمة الضحك في وقت غير مناسب 😂',
-            'مطلوب للتحقيق فورًا 🚨'
-        ];
-
-        const judgment =
-            judgments[Math.floor(Math.random() * judgments.length)];
-
-        return message.reply(
-            `⚖️ **محكمة السيرفر**\n${user}\nالحكم: **${judgment}**`
-        );
-    }
-});
-// 🎭 أوامر ترفيهية جديدة
-client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
-
-    const args = message.content.trim().split(/\s+/);
-    const command = args[0].toLowerCase();
-    const user = message.mentions.users.first();
-
+    // ======================================
     // ❤️ عشق
+    // ======================================
+
     if (command === 'عشق') {
-        const percent = Math.floor(Math.random() * 101);
-        return message.reply(`❤️ نسبة العشق اليوم: **${percent}%**`);
+        return message.reply(
+            `❤️ نسبة العشق: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
+    // ❤️ حب
+    // ======================================
+
+    if (command === 'حب') {
+        const user = message.mentions.users.first();
+
+        if (!user) {
+            return message.reply('❤️ منشن شخص عشان أحسب نسبة الحب.');
+        }
+
+        return message.reply(
+            `❤️ نسبة الحب بينك وبين ${user}: **${luckyPercent()}%**`
+        );
+    }
+
+
+    // ======================================
+    // 💔 كره
+    // ======================================
+
+    if (command === 'كره') {
+        const user = message.mentions.users.first();
+
+        if (!user) {
+            return message.reply('💔 منشن شخص عشان أحسب نسبة الكره.');
+        }
+
+        return message.reply(
+            `💔 نسبة الكره بينك وبين ${user}: **${luckyPercent()}%**`
+        );
+    }
+
+
+    // ======================================
     // 👀 غيرة
+    // ======================================
+
     if (command === 'غيرة') {
-        const percent = Math.floor(Math.random() * 101);
-        return message.reply(`👀 نسبة غيرتك: **${percent}%**`);
+        return message.reply(
+            `👀 نسبة غيرتك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 🥀 حنين
+    // ======================================
+
     if (command === 'حنين') {
-        const percent = Math.floor(Math.random() * 101);
-        return message.reply(`🥀 نسبة الحنين: **${percent}%**`);
+        return message.reply(
+            `🥀 نسبة الحنين: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 🤍 وفاء
+    // ======================================
+
     if (command === 'وفاء') {
-        const percent = Math.floor(Math.random() * 101);
-        return message.reply(`🤍 نسبة الوفاء: **${percent}%**`);
+        return message.reply(
+            `🤍 نسبة وفائك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 💗 شوق
+    // ======================================
+
     if (command === 'شوق') {
-        const percent = Math.floor(Math.random() * 101);
-        return message.reply(`💗 نسبة الشوق: **${percent}%**`);
+        return message.reply(
+            `💗 نسبة الشوق: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 😶 مزاج
+    // ======================================
+
     if (command === 'مزاج') {
-        const moods = [
+        const list = [
             'رايق 😎',
             'مبسوط 😂',
             'معصب 😤',
@@ -2488,101 +2454,154 @@ client.on('messageCreate', async (message) => {
             'متحمس 🔥'
         ];
 
-        const mood = moods[Math.floor(Math.random() * moods.length)];
-        return message.reply(`😶 مزاجك اليوم: **${mood}**`);
+        let result;
+
+        if (message.author.id === SUPER_LUCK_USER && superLuckEnabled) {
+            result = [
+                'رايق جدًا 😎🔥',
+                'مبسوط بشكل رهيب 😂❤️',
+                'مزاج أسطوري 👑',
+                'متحمس 🔥🔥',
+                'فوق الممتاز 😎'
+            ][Math.floor(Math.random() * 5)];
+        } else {
+            result = list[Math.floor(Math.random() * list.length)];
+        }
+
+        return message.reply(`😶 مزاجك اليوم: **${result}**`);
     }
 
+
+    // ======================================
     // ⚡ طاقة
+    // ======================================
+
     if (command === 'طاقة') {
-        const percent = Math.floor(Math.random() * 101);
-        return message.reply(`⚡ مستوى طاقتك: **${percent}%**`);
+        return message.reply(
+            `⚡ مستوى طاقتك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 😈 جرأة
+    // ======================================
+
     if (command === 'جرأة') {
-        const percent = Math.floor(Math.random() * 101);
-        return message.reply(`😈 نسبة جرأتك: **${percent}%**`);
+        return message.reply(
+            `😈 نسبة جرأتك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 🤫 سر
+    // ======================================
+
     if (command === 'سر') {
-        const secrets = [
-            'أنت أكثر شخص مراقب في السيرفر 👀',
-            'في شخص يراقبك من بعيد 😂',
-            'عندك سر بس حتى أنت ناسيه 💀',
-            'البوت يعرف أكثر منك 🤫',
-            'ما نقدرش نقول... سر 🤐'
+        const list = [
+            'في شخص يراقبك من بعيد 👀',
+            'البوت يعرف شيء عنك 🤫',
+            'عندك سر حتى أنت ناسيه 😂',
+            'أنت أخطر مما تتوقع 😈',
+            'في شيء حلو قريب منك ✨'
         ];
 
-        const secret = secrets[Math.floor(Math.random() * secrets.length)];
-        return message.reply(`🤫 **${secret}**`);
+        return message.reply(
+            `🤫 **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 👑 لقب
+    // ======================================
+
     if (command === 'لقب') {
-        const titles = [
+        const list = [
             'ملك الهيبة 👑',
-            'صاحب الفخامة 🔥',
             'الأسطورة 🐐',
+            'الزعيم 🔥',
             'المهيب 😎',
-            'الزعيم 🫡',
+            'المحترف 🎯',
             'الخطير 💀',
-            'المحترف 🎯'
+            'صاحب الفخامة 👑'
         ];
 
-        const title = titles[Math.floor(Math.random() * titles.length)];
-        return message.reply(`👑 لقبك: **${title}**`);
+        return message.reply(
+            `👑 لقبك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // ✨ ميزة
+    // ======================================
+
     if (command === 'ميزة') {
-        const features = [
+        const list = [
             'ذكاؤك 🧠',
-            'فخامتك 👑',
             'روحك المرحة 😂',
-            'هدوءك 😎',
             'ثقتك بنفسك 🔥',
-            'طيبة قلبك ❤️'
+            'هدوءك 😎',
+            'طيبة قلبك ❤️',
+            'شخصيتك القوية 💪'
         ];
 
-        const feature = features[Math.floor(Math.random() * features.length)];
-        return message.reply(`✨ ميزتك: **${feature}**`);
+        return message.reply(
+            `✨ ميزتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🐾 حيوان
+    // ======================================
+
     if (command === 'حيوان') {
-        const animals = [
+        const list = [
             'أسد 🦁',
             'نمر 🐯',
             'ذئب 🐺',
             'صقر 🦅',
             'ثعلب 🦊',
-            'باندا 🐼',
-            'قط 🐱'
+            'قط 🐱',
+            'باندا 🐼'
         ];
 
-        const animal = animals[Math.floor(Math.random() * animals.length)];
-        return message.reply(`🐾 حيوان شخصيتك: **${animal}**`);
+        return message.reply(
+            `🐾 حيوان شخصيتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🍔 أكلة
+    // ======================================
+
     if (command === 'أكلة') {
-        const foods = [
+        const list = [
             'بيتزا 🍕',
             'برجر 🍔',
             'مكرونة 🍝',
             'شاورما 🌯',
             'دجاج 🍗',
-            'بيتزا 🍕'
+            'بطاطا 🍟',
+            'كبسة 🍚'
         ];
 
-        const food = foods[Math.floor(Math.random() * foods.length)];
-        return message.reply(`🍽️ أكلتك اليوم: **${food}**`);
+        return message.reply(
+            `🍽️ أكلتك اليوم: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 💼 وظيفة
+    // ======================================
+
     if (command === 'وظيفة') {
-        const jobs = [
+        const list = [
             'مبرمج 💻',
             'مهندس 👷',
             'رجل أعمال 💼',
@@ -2592,113 +2611,249 @@ client.on('messageCreate', async (message) => {
             'صانع محتوى 🎥'
         ];
 
-        const job = jobs[Math.floor(Math.random() * jobs.length)];
-        return message.reply(`💼 وظيفتك: **${job}**`);
+        return message.reply(
+            `💼 وظيفتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
-});
-// 🎮 أوامر ترفيهية متنوعة
-client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
 
-    const command = message.content.trim().split(/\s+/)[0].toLowerCase();
 
+    // ======================================
     // 🎭 طبع
+    // ======================================
+
     if (command === 'طبع') {
-        const list = ['هادئ 😎', 'مجنون 😂', 'غامض 👀', 'اجتماعي 🗣️', 'عصبي 😤', 'مرح 🤣'];
-        return message.reply(`🎭 طبعك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        const list = [
+            'هادئ 😎',
+            'مجنون 😂',
+            'غامض 👀',
+            'اجتماعي 🗣️',
+            'عصبي 😤',
+            'مرح 🤣'
+        ];
+
+        return message.reply(
+            `🎭 طبعك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 👤 شخصية
+    // ======================================
+
     if (command === 'شخصية') {
-        const list = ['القائد 👑', 'المغامر ⚡', 'المفكر 🧠', 'المبدع 🎨', 'المحارب ⚔️', 'الغامض 🥷'];
-        return message.reply(`👤 شخصيتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        const list = [
+            'القائد 👑',
+            'المغامر ⚡',
+            'المفكر 🧠',
+            'المبدع 🎨',
+            'المحارب ⚔️',
+            'الغامض 🥷'
+        ];
+
+        return message.reply(
+            `👤 شخصيتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 😎 ستايل
+    // ======================================
+
     if (command === 'ستايل') {
-        const list = ['كاجوال 👕', 'فاخر 🕴️', 'رياضي 🏃', 'كلاسيك 🎩', 'غامض 🖤', 'فخم 👑'];
-        return message.reply(`😎 ستايلك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        const list = [
+            'كاجوال 👕',
+            'فاخر 🕴️',
+            'رياضي 🏃',
+            'كلاسيك 🎩',
+            'غامض 🖤',
+            'فخم 👑'
+        ];
+
+        return message.reply(
+            `😎 ستايلك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🔥 كاريزما
+    // ======================================
+
     if (command === 'كاريزما') {
-        return message.reply(`🔥 كاريزمتك: **${Math.floor(Math.random() * 101)}%**`);
+        return message.reply(
+            `🔥 كاريزمتك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // ✨ جاذبية
+    // ======================================
+
     if (command === 'جاذبية') {
-        return message.reply(`✨ جاذبيتك: **${Math.floor(Math.random() * 101)}%**`);
+        return message.reply(
+            `✨ جاذبيتك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 👑 حضور
+    // ======================================
+
     if (command === 'حضور') {
-        return message.reply(`👑 قوة حضورك: **${Math.floor(Math.random() * 101)}%**`);
+        return message.reply(
+            `👑 قوة حضورك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 🔥 حماس
+    // ======================================
+
     if (command === 'حماس') {
-        return message.reply(`🔥 مستوى حماسك: **${Math.floor(Math.random() * 101)}%**`);
+        return message.reply(
+            `🔥 مستوى حماسك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 🌞 تفاؤل
+    // ======================================
+
     if (command === 'تفاؤل') {
-        return message.reply(`🌞 نسبة تفاؤلك: **${Math.floor(Math.random() * 101)}%**`);
+        return message.reply(
+            `🌞 نسبة تفاؤلك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 🌑 تشاؤم
+    // ======================================
+
     if (command === 'تشاؤم') {
-        return message.reply(`🌑 نسبة تشاؤمك: **${Math.floor(Math.random() * 101)}%**`);
+        return message.reply(
+            `🌑 نسبة تشاؤمك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 👀 مين
+    // ======================================
+
     if (command === 'مين') {
-        const member = message.guild?.members.cache
-            .filter(m => !m.user.bot)
-            .random();
+        if (!message.guild) return;
 
-        if (!member) return message.reply('ما لقيتش عضو 😂');
+        const members = message.guild.members.cache
+            .filter(member => !member.user.bot);
 
-        return message.reply(`👀 أختار: ${member}`);
-    }
-
-    // 🎯 اختار
-    if (command === 'اختار') {
-        const choices = message.content.trim().split(/\s+/).slice(1);
-
-        if (choices.length < 2) {
-            return message.reply('اكتب خيارين أو أكثر، مثال: `اختار احمر ازرق`');
+        if (!members.size) {
+            return message.reply('ما لقيتش أعضاء 😂');
         }
 
-        return message.reply(`🎯 أختار: **${choices[Math.floor(Math.random() * choices.length)]}**`);
+        let member;
+
+        // الحظ الجبار يعطي فرصة أعلى لاختيار الشخص المطلوب
+        if (message.author.id === SUPER_LUCK_USER && superLuckEnabled) {
+            member = message.member;
+        } else {
+            member = members.random();
+        }
+
+        return message.reply(`👀 اخترت: ${member}`);
     }
 
+
+    // ======================================
+    // 🎯 اختار
+    // ======================================
+
+    if (command === 'اختار') {
+        const choices = content.split(/\s+/).slice(1);
+
+        if (choices.length < 2) {
+            return message.reply(
+                '🎯 اكتب خيارين أو أكثر، مثال: `اختار أحمر أزرق`'
+            );
+        }
+
+        let selected;
+
+        if (message.author.id === SUPER_LUCK_USER && superLuckEnabled) {
+            selected = choices[0];
+        } else {
+            selected = choices[Math.floor(Math.random() * choices.length)];
+        }
+
+        return message.reply(`🎯 أختار: **${selected}**`);
+    }
+
+
+    // ======================================
     // 🔮 توقع
+    // ======================================
+
     if (command === 'توقع') {
         const list = [
             'اليوم بيصير معاك شيء حلو ✨',
             'عندك خبر ممتاز قريب 🔥',
             'بتقابل شخص ما شفته من زمان 👀',
             'اليوم يومك 🍀',
-            'خلّيك هادي، القادم أفضل 😎'
+            'القادم أفضل بإذن الله 😎'
         ];
 
-        return message.reply(`🔮 **${list[Math.floor(Math.random() * list.length)]}**`);
-    }
-
-    // ⚖️ قرار
-    if (command === 'قرار') {
         return message.reply(
-            `⚖️ القرار: **${Math.random() < 0.5 ? 'نعم ✅' : 'لا ❌'}**`
+            `🔮 **${list[Math.floor(Math.random() * list.length)]}**`
         );
     }
 
-    // 💭 رأي
-    if (command === 'رأي') {
-        const list = ['ممتاز 🔥', 'عادي 😐', 'فكرة حلوة 👌', 'ما ننصحش 😂', 'جامد جدًا 😎'];
-        return message.reply(`💭 رأيي: **${list[Math.floor(Math.random() * list.length)]}**`);
+
+    // ======================================
+    // ⚖️ قرار
+    // ======================================
+
+    if (command === 'قرار') {
+        let result;
+
+        if (message.author.id === SUPER_LUCK_USER && superLuckEnabled) {
+            result = Math.random() < 0.8 ? 'نعم ✅' : 'لا ❌';
+        } else {
+            result = Math.random() < 0.5 ? 'نعم ✅' : 'لا ❌';
+        }
+
+        return message.reply(`⚖️ القرار: **${result}**`);
     }
 
+
+    // ======================================
+    // 💭 رأي
+    // ======================================
+
+    if (command === 'رأي') {
+        const list = [
+            'ممتاز 🔥',
+            'عادي 😐',
+            'فكرة حلوة 👌',
+            'ما ننصحش 😂',
+            'جامد جدًا 😎'
+        ];
+
+        return message.reply(
+            `💭 رأيي: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
+    }
+
+
+    // ======================================
     // ❓ سؤال
+    // ======================================
+
     if (command === 'سؤال') {
         const list = [
             'شن أكثر شيء تحبه؟ ❤️',
@@ -2708,27 +2863,109 @@ client.on('messageCreate', async (message) => {
             'شن حلمك؟ 🌟'
         ];
 
-        return message.reply(`❓ ${list[Math.floor(Math.random() * list.length)]}`);
+        return message.reply(
+            `❓ ${list[Math.floor(Math.random() * list.length)]}`
+        );
     }
 
+
+    // ======================================
     // 🗣️ جواب
+    // ======================================
+
     if (command === 'جواب') {
-        const list = ['أكيد 😎', 'مستحيل 😂', 'ممكن 🤔', 'طبعًا 🔥', 'ما نعرفش 👀'];
-        return message.reply(`🗣️ **${list[Math.floor(Math.random() * list.length)]}**`);
+        const list = [
+            'أكيد 😎',
+            'مستحيل 😂',
+            'ممكن 🤔',
+            'طبعًا 🔥',
+            'ما نعرفش 👀'
+        ];
+
+        return message.reply(
+            `🗣️ **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // ⚡ سرعة
+    // ======================================
+
     if (command === 'سرعة') {
-        return message.reply(`⚡ سرعتك: **${Math.floor(Math.random() * 101)}%**`);
+        return message.reply(
+            `⚡ سرعتك: **${luckyPercent()}%**`
+        );
     }
 
+
+    // ======================================
     // 😂 ردة
+    // ======================================
+
     if (command === 'ردة') {
-        const list = ['😂 ضحك', '😱 صدمة', '💀 موت', '😎 عادي', '🤨 استغراب'];
-        return message.reply(`😂 ردة فعلك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        const list = [
+            '😂 ضحك',
+            '😱 صدمة',
+            '💀 موت',
+            '😎 عادي',
+            '🤨 استغراب'
+        ];
+
+        return message.reply(
+            `😂 ردة فعلك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
+    // 🔥 روست
+    // ======================================
+
+    if (command === 'روست') {
+        const user = message.mentions.users.first() || message.author;
+
+        const list = [
+            'مستواك يحتاج تحديث 😂',
+            'حتى الحظ استسلم منك 💀',
+            'والله ما قصرت... قصرت كثير 😂',
+            'أنت سبب انخفاض مستوى السيرفر 💀',
+            'خلنا ساكتين أحسن لك 😂',
+            'عندي كلام كثير بس أخاف عليك 😭'
+        ];
+
+        return message.reply(
+            `${user} 🔥 **${list[Math.floor(Math.random() * list.length)]}**`
+        );
+    }
+
+
+    // ======================================
+    // ⚖️ حكم
+    // ======================================
+
+    if (command === 'حكم') {
+        const user = message.mentions.users.first() || message.author;
+
+        const list = [
+            'مذنب بتهمة الفخامة الزائدة 👑',
+            'مذنب بتهمة الإزعاج 😂',
+            'بريء لعدم كفاية الأدلة ⚖️',
+            'مذنب ويُحكم عليه بالصمت لمدة 5 دقائق 💀',
+            'مذنب بتهمة الضحك في وقت غير مناسب 😂',
+            'مطلوب للتحقيق فورًا 🚨'
+        ];
+
+        return message.reply(
+            `⚖️ **محكمة السيرفر**\n${user}\nالحكم: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
+    }
+
+
+    // ======================================
     // 🚨 فضيحة
+    // ======================================
+
     if (command === 'فضيحة') {
         const list = [
             'تدخل وتشوف الرسالة وتطلع بدون رد 😂',
@@ -2737,10 +2974,16 @@ client.on('messageCreate', async (message) => {
             'تقول آخر قيم وبعدها تلعب 3 ساعات 🎮'
         ];
 
-        return message.reply(`🚨 فضيحتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        return message.reply(
+            `🚨 فضيحتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🌀 ورطة
+    // ======================================
+
     if (command === 'ورطة') {
         const list = [
             'دخلت روم غلط 💀',
@@ -2749,47 +2992,75 @@ client.on('messageCreate', async (message) => {
             'قلت شيء وسويت نفسك ما قلت شيء 😭'
         ];
 
-        return message.reply(`🌀 ورطتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        return message.reply(
+            `🌀 ورطتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🤥 كذبة
+    // ======================================
+
     if (command === 'كذبة') {
         const list = [
             'والله آخر قيم 😂',
             'بدخل خمس دقايق بس 💀',
             'ما كنت فاتح الديسكورد 👀',
-            'نسيت أرد عليك 😭'
+            'نسيت أرد عليك 😭',
+            'والله ما شفت الرسالة 😂',
+            'خلاص آخر مرة 🤣'
         ];
 
-        return message.reply(`🤥 كذبتك المشهورة: **${list[Math.floor(Math.random() * list.length)]}**`);
+        return message.reply(
+            `🤥 كذبتك المشهورة: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 📝 عذر
+    // ======================================
+
     if (command === 'عذر') {
         const list = [
             'النت فصل 😭',
             'الجوال علق 💀',
             'كنت مشغول 😂',
             'ما شفت الرسالة 👀',
-            'كنت نايم 😴'
+            'كنت نايم 😴',
+            'البطارية خلصت 🔋'
         ];
 
-        return message.reply(`📝 عذرك اليوم: **${list[Math.floor(Math.random() * list.length)]}**`);
+        return message.reply(
+            `📝 عذرك اليوم: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // ⚖️ عقوبة
+    // ======================================
+
     if (command === 'عقوبة') {
         const list = [
             'غيّر صورتك لمدة ساعة 😂',
             'اكتب "أنا بريء" 5 مرات 💀',
             'غيّر اسمك لدقيقة 🤣',
-            'اسكت 5 دقائق 🤐'
+            'اسكت 5 دقائق 🤐',
+            'غيّر ستاتسك لمدة 10 دقائق 😂'
         ];
 
-        return message.reply(`⚖️ عقوبتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        return message.reply(
+            `⚖️ عقوبتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🚨 تهمتك
+    // ======================================
+
     if (command === 'تهمتك') {
         const list = [
             'الإزعاج المتعمد 😂',
@@ -2799,44 +3070,90 @@ client.on('messageCreate', async (message) => {
             'الفخامة الزائدة 👑'
         ];
 
-        return message.reply(`🚨 تهمتك: **${list[Math.floor(Math.random() * list.length)]}**`);
+        return message.reply(
+            `🚨 تهمتك: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🎨 لون
+    // ======================================
+
     if (command === 'لون') {
-        const list = ['أحمر ❤️', 'أزرق 💙', 'بنفسجي 💜', 'أسود 🖤', 'أخضر 💚', 'أبيض 🤍'];
-        return message.reply(`🎨 لونك اليوم: **${list[Math.floor(Math.random() * list.length)]}**`);
+        const list = [
+            'أحمر ❤️',
+            'أزرق 💙',
+            'بنفسجي 💜',
+            'أسود 🖤',
+            'أخضر 💚',
+            'أبيض 🤍',
+            'وردي 🩷',
+            'برتقالي 🧡'
+        ];
+
+        return message.reply(
+            `🎨 لونك اليوم: **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
+
+    // ======================================
     // 🔢 رقمك
+    // ======================================
+
     if (command === 'رقمك') {
-        return message.reply(`🔢 رقمك اليوم: **${Math.floor(Math.random() * 1000) + 1}**`);
+        let number;
+
+        if (message.author.id === SUPER_LUCK_USER && superLuckEnabled) {
+            number = Math.floor(Math.random() * 100) + 900;
+        } else {
+            number = Math.floor(Math.random() * 1000) + 1;
+        }
+
+        return message.reply(`🔢 رقمك اليوم: **${number}**`);
     }
 
+
+    // ======================================
     // 📅 يومك
+    // ======================================
+
     if (command === 'يومك') {
         const list = [
             'يوم ممتاز 🌟',
             'يوم عادي 😐',
             'يوم مليان مفاجآت 👀',
             'يوم رايق 😎',
-            'يومك يحتاج قهوة ☕'
+            'يومك يحتاج قهوة ☕',
+            'يومك نار 🔥'
         ];
 
-        return message.reply(`📅 **${list[Math.floor(Math.random() * list.length)]}**`);
+        return message.reply(
+            `📅 **${list[Math.floor(Math.random() * list.length)]}**`
+        );
     }
 
-    // 🔮 طالع
-    if (command === 'طالع') {
-        const list = [
-            'الخير جايك ✨',
-            'عندك مفاجأة قريبة 👀',
-            'الحظ واقف معاك 🍀',
-            'خليك مركز اليوم 🎯',
-            'اليوم مناسب للبداية 🔥'
-        ];
 
-        return message.reply(`🔮 **${list[Math.floor(Math.random() * list.length)]}**`);
-    }
+// ================================
+// 🔮 طالع
+// ================================
+
+if (command === 'طالع') {
+    const list = [
+        'يوم ممتاز 🌟',
+        'يوم عادي 🙂',
+        'يوم مليان مفاجآت 😳',
+        'يوم رايق 😎',
+        'يومك يحتاج شوية حظ 🍀',
+        'يوم قوي 💪',
+        'يوم نار 🔥'
+    ];
+
+    return message.reply(
+        `🔮 **طالعك اليوم:** **${list[Math.floor(Math.random() * list.length)]}**`
+    );
+}
+
 });
 client.login(process.env.TOKEN);
