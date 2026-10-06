@@ -3256,27 +3256,7 @@ if (
 // 👇 حط هذا الجزء داخل interactionCreate الموجود عندك
 // ============================================================
 
-if (interaction.isButton() && interaction.customId === 'giveaway_join') {
 
-    const members = getGiveawayMembers();
-
-    // هل العضو مشترك بالفعل؟
-    if (members.includes(interaction.user.id)) {
-        return interaction.reply({
-            content: '✅ أنت مشترك بالفعل في القيف اوي.',
-            ephemeral: true
-        });
-    }
-
-    // إضافة العضو
-    members.push(interaction.user.id);
-    saveGiveawayMembers(members);
-
-    await interaction.reply({
-        content: '🎉 تم اشتراكك في القيف اوي بنجاح!',
-        ephemeral: true
-    });
-}
 
 
 // ============================================================
