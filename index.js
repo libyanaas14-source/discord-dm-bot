@@ -1516,7 +1516,26 @@ if (message.content === 'توقيف') {
 client.on('interactionCreate', async interaction => {
 
     if (!interaction.isButton()) return;
+// 🎁 زر الاشتراك في الجيف اوي
+if (interaction.customId === 'giveaway_join') {
 
+    const members = getGiveawayMembers();
+
+    if (members.includes(interaction.user.id)) {
+        return interaction.reply({
+            content: '✅ أنت مشترك بالفعل في القيف اوي.',
+            ephemeral: true
+        });
+    }
+
+    members.push(interaction.user.id);
+    saveGiveawayMembers(members);
+
+    return interaction.reply({
+        content: '🎉 تم اشتراكك في القيف اوي بنجاح!',
+        ephemeral: true
+    });
+}
     const game = games.getActiveGame();
 
     if (!game) {
