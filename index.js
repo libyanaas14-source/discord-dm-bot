@@ -3154,6 +3154,157 @@ if (command === 'طالع') {
         `🔮 **طالعك اليوم:** **${list[Math.floor(Math.random() * list.length)]}**`
     );
 }
+// ============================================================
+// 🎁 نظام جيف اوي + اشتراك
+// ============================================================
 
+const fs = require('fs');
+const path = require('path');
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    EmbedBuilder
+} = require('discord.js');
+
+const giveawayFile = path.join(__dirname, 'giveaway_members.json');
+
+// إنشاء الملف لو مش موجود
+if (!fs.existsSync(giveawayFile)) {
+    fs.writeFileSync(giveawayFile, JSON.stringify([], null, 2));
+}
+
+function getGiveawayMembers() {
+    try {
+        return JSON.parse(fs.readFileSync(giveawayFile, 'utf8'));
+    } catch {
+        return [];
+    }
+}
+
+function saveGiveawayMembers(members) {
+    fs.writeFileSync(
+        giveawayFile,
+        JSON.stringify(members, null, 2)
+    );
+}
+
+
+// ============================================================
+// 🎁 أمر جيف اوي
+// ============================================================
+
+if (message.content.toLowerCase() === 'جيف اوي') {
+
+    const embed = new EmbedBuilder()
+        .setTitle('🎁 جيف اوي')
+        .setDescription(
+            '**جيف اوي على مليار كريدت لحق**\n\n' +
+            '**الوقت:** `100h`\n\n' +
+            'اضغط على الزر بالأسفل للاشتراك.\n' +
+            '⚠️ الاشتراك يتم بموافقتك أنت.'
+        );
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('giveaway_join')
+            .setLabel('اشترك الآن')
+            .setStyle(ButtonStyle.Success)
+    );
+
+    await message.channel.send({
+        embeds: [embed],
+        components: [row]
+    });
+}
+
+
+// ============================================================
+// 🟢 زر اشترك الآن
+// ============================================================
+
+if (
+    message.author &&
+    message.client &&
+    false
+) {
+    // هذا الجزء متروك فارغًا لأن الأزرار يتم التعامل معها
+    // في interactionCreate بالأسفل.
+}
+
+
+// ============================================================
+// 👇 حط هذا الجزء داخل interactionCreate الموجود عندك
+// ============================================================
+
+if (interaction.isButton() && interaction.customId === 'giveaway_join') {
+
+    const members = getGiveawayMembers();
+
+    // هل العضو مشترك بالفعل؟
+    if (members.includes(interaction.user.id)) {
+        return interaction.reply({
+            content: '✅ أنت مشترك بالفعل في القيف اوي.',
+            ephemeral: true
+        });
+    }
+
+    // إضافة العضو
+    members.push(interaction.user.id);
+    saveGiveawayMembers(members);
+
+    await interaction.reply({
+        content: '🎉 تم اشتراكك في القيف اوي بنجاح!',
+        ephemeral: true
+    });
+}
+
+
+// ============================================================
+// 👥 أمر بيع 20
+// ============================================================
+
+if (message.content.toLowerCase().startsWith('بيع ')) {
+
+    const amount = parseInt(
+        message.content.split(' ')[1]
+    );
+
+    if (isNaN(amount) || amount <= 0) {
+        return message.reply(
+            '❌ الاستخدام الصحيح:\n`بيع 20`'
+        );
+    }
+
+    const members = getGiveawayMembers();
+
+    if (members.length === 0) {
+        return message.reply(
+            '❌ مفيش أعضاء مشتركين في القيف اوي.'
+        );
+    }
+
+    if (amount > members.length) {
+        return message.reply(
+            `❌ طلبت ${amount} أعضاء، لكن المشتركين فقط ${members.length}.`
+        );
+    }
+
+    // خلط المشاركين عشوائيًا
+    const shuffled = [...members].sort(
+        () => Math.random() - 0.5
+    );
+
+    const selected = shuffled.slice(0, amount);
+
+    const mentions = selected
+        .map(id => `<@${id}>`)
+        .join('\n');
+
+    await message.channel.send(
+        `🎉 **تم اختيار ${amount} عضو من المشاركين:**\n\n${mentions}`
+    );
+}
+    
 });
 client.login(process.env.TOKEN);
