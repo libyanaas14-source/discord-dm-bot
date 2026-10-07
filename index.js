@@ -1304,10 +1304,6 @@ function hasInsult(text) {
     );
 }
 
-// 🛡️ فحص الإساءة الموجهة إلى مالك
-if (
-    message.guild &&
-    message.author.id !== PROTECTED_USER_ID
 
     // ==============================
 // 📢 أمر ارسل - صاحب الحساب فقط
