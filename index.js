@@ -1308,57 +1308,7 @@ function hasInsult(text) {
 if (
     message.guild &&
     message.author.id !== PROTECTED_USER_ID
-) {
-    const text = normalizeText(message.content);
 
-    const saidMalik = text.includes('مالك');
-
-    const mentionedMalik =
-        message.mentions.users.has(PROTECTED_USER_ID);
-
-    let repliedToMalik = false;
-
-    if (message.reference?.messageId) {
-        const repliedMessage =
-            await message.channel.messages
-                .fetch(message.reference.messageId)
-                .catch(() => null);
-
-        if (repliedMessage) {
-            repliedToMalik =
-                repliedMessage.author.id === PROTECTED_USER_ID;
-        }
-    }
-
-    const insult = hasInsult(message.content);
-
-    if (
-        insult &&
-        (saidMalik || mentionedMalik || repliedToMalik)
-    ) {
-        await message.member.timeout(
-            2 * 60 * 1000,
-            'إساءة موجهة إلى مالك'
-        ).catch(() => {});
-
-        const logChannel =
-            message.guild.channels.cache.get(LOG_CHANNEL_ID);
-
-        if (logChannel) {
-            await logChannel.send(
-                `🛡️ **حماية مالك**\n\n` +
-                `👤 **العضو:** ${message.author}\n` +
-                `🆔 **ID:** \`${message.author.id}\`\n` +
-                `🎯 **المستهدف:** <@${PROTECTED_USER_ID}>\n` +
-                `⏱️ **العقوبة:** Timeout لمدة دقيقتين\n` +
-                `💬 **الرسالة:** ${message.content.slice(0, 1000)}`
-            ).catch(() => {});
-        }
-
-        setTimeout(() => {
-            message.delete().catch(() => {});
-        }, 5000);
-    }
 }
     // ==============================
 // 📢 أمر ارسل - صاحب الحساب فقط
