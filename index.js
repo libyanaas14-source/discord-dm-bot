@@ -2380,21 +2380,35 @@ client.on('messageCreate', async (message) => {
     }
 
 
-    // ======================================
-    // ❤️ حب
-    // ======================================
+// ======================================
+// ❤️ حب
+// ======================================
 
-    if (command === 'حب') {
-        const user = message.mentions.users.first();
+if (command === 'حب') {
+    const user = message.mentions.users.first();
 
-        if (!user) {
-            return message.reply('❤️ منشن شخص عشان أحسب نسبة الحب.');
-        }
-
-        return message.reply(
-            `❤️ نسبة الحب بينك وبين ${user}: **${luckyPercent()}%**`
-        );
+    if (!user) {
+        return message.reply('❤️ منشن شخص عشان أحسب نسبة الحب.');
     }
+
+    const specialUserId = '1476270096296050730';
+    const specialMentionId = '1552335485924278364';
+
+    let percent;
+
+    if (
+        message.author.id === specialUserId &&
+        user.id === specialMentionId
+    ) {
+        percent = 100;
+    } else {
+        percent = luckyPercent();
+    }
+
+    return message.reply(
+        `❤️ نسبة الحب بينك وبين ${user}: **${percent}%**`
+    );
+}
 
 
     // ======================================
