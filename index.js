@@ -3409,7 +3409,6 @@ if (command === 'فك سجن') {
         console.error('خطأ في فك السجن:', error);
         return message.reply('❌ صار خطأ وأنا نحاول نفك السجن.');
     }
-}
 }    
 });
 client.login(process.env.TOKEN);
