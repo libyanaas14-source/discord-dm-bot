@@ -3310,128 +3310,106 @@ if (mentionedTarget && !BYPASS_USERS.includes(message.author.id)) {
         global.mentionTracker.set(message.author.id, now);
     }
 }
-// ======================================
-// 🔒 نظام السجن
-// ======================================
-
-const JAIL_ROLE_ID = '1557748048271122492';
-const JAIL_AUTH_ROLE_ID = '1535139464702066788';
-
-// حفظ صلاحيات المسجونين
-const jailedUsers = new Map();
-
+// ===============================
+// 🔒 أمر سجن
+// ===============================
 if (command === 'سجن') {
-    // التحقق من رتبة المستخدم
-    if (!message.member.roles.cache.has(JAIL_AUTH_ROLE_ID)) {
-        return message.reply('❌ ما عندكش صلاحية تستخدم أمر السجن.');
+
+    // الرتبة المسموح لها
+    if (!message.member.roles.cache.has('1535139464702066788')) {
+        return message.reply('❌ ما عندكش صلاحية تستعمل الأمر.');
     }
 
-    const target = message.mentions.members.first();
+    const user = message.mentions.members.first();
 
-    if (!target) {
-        return message.reply('❌ منشن الشخص اللي تبي تسجنه.');
+    if (!user) {
+        return message.reply('❌ منشن الشخص عشان تسجنه.');
     }
 
-    // منع تكرار السجن
-    if (jailedUsers.has(target.id)) {
-        return message.reply('❌ الشخص هذا مسجون بالفعل.');
-    }
-
-    // حفظ صلاحيات الشخص لكل الرومات
-    const permissions = new Map();
-
-    message.guild.channels.cache.forEach(channel => {
-        if (!channel.isTextBased()) return;
-
-        const overwrite = channel.permissionOverwrites.cache.get(target.id);
-
-        permissions.set(channel.id, overwrite ? {
-            allow: overwrite.allow.bitfield.toString(),
-            deny: overwrite.deny.bitfield.toString()
-        } : null);
-    });
-
-    jailedUsers.set(target.id, permissions);
+    const jailChannelId = '1557748048271122492';
 
     try {
-        // نخفي كل الرومات
+        // نخزن صلاحيات العضو الحالية
+        if (!global.jailedUsers) global.jailedUsers = new Map();
+
+        if (!global.jailedUsers.has(user.id)) {
+            const permissions = new Map();
+
+            message.guild.channels.cache.forEach(channel => {
+                const overwrite = channel.permissionOverwrites.cache.get(user.id);
+
+                if (overwrite) {
+                    permissions.set(channel.id, {
+                        allow: overwrite.allow.bitfield.toString(),
+                        deny: overwrite.deny.bitfield.toString()
+                    });
+                }
+            });
+
+            global.jailedUsers.set(user.id, permissions);
+        }
+
+        // نخفي كل الرومات عنه
         for (const channel of message.guild.channels.cache.values()) {
             if (!channel.isTextBased()) continue;
 
-            if (channel.id === JAIL_ROLE_ID) {
-                // روم السجن: يشوف ويكتب
-                await channel.permissionOverwrites.edit(target.id, {
-                    ViewChannel: true,
-                    SendMessages: true
-                });
-            } else {
-                // باقي الرومات: إخفاء
-                await channel.permissionOverwrites.edit(target.id, {
-                    ViewChannel: false
-                });
-            }
+            await channel.permissionOverwrites.edit(user.id, {
+                ViewChannel: false,
+                SendMessages: false
+            }).catch(() => {});
         }
 
-        return message.reply(`🔒 تم سجن ${target} بنجاح.`);
+        // نخلي روم السجن ظاهر ويقدر يكتب فيه
+        const jailChannel = message.guild.channels.cache.get(jailChannelId);
+
+        if (jailChannel) {
+            await jailChannel.permissionOverwrites.edit(user.id, {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true
+            });
+        }
+
+        return message.reply(`🔒 تم سجن ${user} بنجاح.`);
+        
     } catch (error) {
-        console.error(error);
-        jailedUsers.delete(target.id);
+        console.error('خطأ في أمر السجن:', error);
         return message.reply('❌ صار خطأ وأنا نحاول نسجن الشخص.');
     }
 }
 
+
+// ===============================
+// 🔓 أمر فك سجن
+// ===============================
 if (command === 'فك سجن') {
-    // التحقق من رتبة المستخدم
-    if (!message.member.roles.cache.has(JAIL_AUTH_ROLE_ID)) {
-        return message.reply('❌ ما عندكش صلاحية تستخدم أمر فك السجن.');
+
+    if (!message.member.roles.cache.has('1535139464702066788')) {
+        return message.reply('❌ ما عندكش صلاحية تستعمل الأمر.');
     }
 
-    const target = message.mentions.members.first();
+    const user = message.mentions.members.first();
 
-    if (!target) {
-        return message.reply('❌ منشن الشخص اللي تبي تفك سجنه.');
-    }
-
-    const savedPermissions = jailedUsers.get(target.id);
-
-    if (!savedPermissions) {
-        return message.reply('❌ الشخص هذا مش مسجون.');
+    if (!user) {
+        return message.reply('❌ منشن الشخص عشان تفك سجنه.');
     }
 
     try {
-        // رجّع صلاحياته الأصلية
-        for (const [channelId, permissions] of savedPermissions) {
-            const channel = message.guild.channels.cache.get(channelId);
 
-            if (!channel || !channel.isTextBased()) continue;
+        // نمسح صلاحيات السجن من كل الرومات
+        for (const channel of message.guild.channels.cache.values()) {
+            if (!channel.isTextBased()) continue;
 
-            if (permissions) {
-                await channel.permissionOverwrites.edit(target.id, {
-                    ViewChannel: permissions.allow & 1024n ? true : null,
-                    SendMessages: permissions.allow & 2048n ? true : null
-                });
-            } else {
-                // ماكانش عنده صلاحية خاصة في الروم
-                await channel.permissionOverwrites.delete(target.id).catch(() => {});
-            }
+            await channel.permissionOverwrites.delete(user.id).catch(() => {});
         }
 
-        // نخفي روم السجن عنه
-        const jailChannel = message.guild.channels.cache.get(JAIL_ROLE_ID);
+        return message.reply(`🔓 تم فك سجن ${user}.`);
 
-        if (jailChannel) {
-            await jailChannel.permissionOverwrites.edit(target.id, {
-                ViewChannel: false
-            });
-        }
-
-        jailedUsers.delete(target.id);
-
-        return message.reply(`🔓 تم فك سجن ${target} ورجعت صلاحياته.`);
     } catch (error) {
-        console.error(error);
+        console.error('خطأ في فك السجن:', error);
         return message.reply('❌ صار خطأ وأنا نحاول نفك السجن.');
     }
+}
 }    
 });
 client.login(process.env.TOKEN);
