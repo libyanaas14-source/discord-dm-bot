@@ -3239,34 +3239,39 @@ if (!global.mentionTracker) {
 // هل الرسالة فيها منشن للحساب المحدد؟
 const mentionedTarget = message.mentions.users.has(TARGET_USER_ID);
 
-if (mentionedTarget && !BYPASS_USERS.includes(message.author.id)) {
+if (
+    mentionedTarget &&
+    !BYPASS_USERS.includes(message.author.id)
+) {
     const now = Date.now();
     const lastMention = global.mentionTracker.get(message.author.id);
 
-    // لو منشن للمرة الثانية خلال 30 دقيقة
-    if (lastMention && now - lastMention < 30 * 60 * 1000) {
+    // لو منشن للمرة الثانية خلال 30 ثانية
+    if (lastMention && now - lastMention < 30 * 1000) {
 
-        // تايم 30 دقيقة
+        // تايم لمدة دقيقة واحدة
         try {
             await message.member.timeout(
-                30 * 60 * 1000,
-                'تكرار منشن الحساب خلال 30 دقيقة'
+                60 * 1000,
+                'تكرار منشن الحساب خلال 30 ثانية'
             );
 
             await message.reply(
-                '⏱️ تم إعطاؤك تايم لمدة 30 دقيقة بسبب تكرار المنشن خلال 30 دقيقة.'
+                '⏱️ تم إعطاؤك تايم لمدة دقيقة بسبب تكرار المنشن خلال 30 ثانية.'
             );
+
         } catch (error) {
             console.error('خطأ في إعطاء التايم:', error);
         }
 
-        // نحذف التسجيل بعد التايم
+        // حذف تسجيل المنشن بعد العقوبة
         global.mentionTracker.delete(message.author.id);
 
     } else {
-        // أول منشن أو بعد انتهاء 30 دقيقة
+        // تسجيل المنشن الأول
         global.mentionTracker.set(message.author.id, now);
     }
+}
 }    
 // ===============================
 // 🔒 أمر سجن
