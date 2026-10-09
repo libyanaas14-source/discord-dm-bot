@@ -3243,17 +3243,19 @@ if (mentionedTarget && !BYPASS_USERS.includes(message.author.id)) {
     const now = Date.now();
     const lastMention = global.mentionTracker.get(message.author.id);
 
-    // لو منشن للمرة الثانية خلال 5 دقائق
-    if (lastMention && now - lastMention < 5 * 60 * 1000) {
+    // لو منشن للمرة الثانية خلال 30 دقيقة
+    if (lastMention && now - lastMention < 30 * 60 * 1000) {
 
         // تايم 30 دقيقة
         try {
             await message.member.timeout(
                 30 * 60 * 1000,
-                'تكرار منشن الحساب خلال 5 دقائق'
+                'تكرار منشن الحساب خلال 30 دقيقة'
             );
 
-            await message.reply('⏱️ تم إعطاؤك تايم لمدة 30 دقيقة بسبب تكرار المنشن.');
+            await message.reply(
+                '⏱️ تم إعطاؤك تايم لمدة 30 دقيقة بسبب تكرار المنشن خلال 30 دقيقة.'
+            );
         } catch (error) {
             console.error('خطأ في إعطاء التايم:', error);
         }
@@ -3262,10 +3264,10 @@ if (mentionedTarget && !BYPASS_USERS.includes(message.author.id)) {
         global.mentionTracker.delete(message.author.id);
 
     } else {
-        // أول منشن أو بعد انتهاء الـ5 دقائق
+        // أول منشن أو بعد انتهاء 30 دقيقة
         global.mentionTracker.set(message.author.id, now);
     }
-}
+}    
 // ===============================
 // 🔒 أمر سجن
 // ===============================
