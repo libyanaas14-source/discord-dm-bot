@@ -3328,7 +3328,6 @@ if (command === 'سجن') {
     }
 }
 
-
 // ===============================
 // 🔓 أمر فك سجن
 // ===============================
@@ -3359,8 +3358,9 @@ if (command === 'فك سجن') {
         console.error('خطأ في فك السجن:', error);
         return message.reply('❌ صار خطأ وأنا نحاول نفك السجن.');
     }
-}    
-    // ==========================================
+}
+
+// ==========================================
 // ❤️ نظام الحب والمنشن
 // ==========================================
 
@@ -3369,10 +3369,9 @@ const LOVE_OWNER_ID = '1476270096296050730';
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
-
     if (!message.content.includes('حب')) return;
 
-    // 👑 لو مالك البوت كتب حب ومنشن أي شخص
+    // 👑 لو المالك كتب حب ومنشن أي شخص
     if (message.author.id === LOVE_OWNER_ID) {
         if (message.mentions.users.size > 0) {
             return message.reply('احم احم👽✨');
@@ -3385,4 +3384,6 @@ client.on('messageCreate', async (message) => {
         return message.reply(`<@${LOVE_OWNER_ID}>`);
     }
 });
+
+    
 client.login(process.env.TOKEN);
