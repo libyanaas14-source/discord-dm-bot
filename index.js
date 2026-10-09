@@ -2298,8 +2298,8 @@ if (command === 'حب') {
     let percent;
 
     if (
-        message.author.id === specialUserId &&
-        user.id === specialMentionId
+        (message.author.id === specialUserId && user.id === specialMentionId) ||
+        (message.author.id === specialMentionId && user.id === specialUserId)
     ) {
         percent = 100;
     } else {
@@ -2310,7 +2310,6 @@ if (command === 'حب') {
         `❤️ نسبة الحب بينك وبين ${user}: **${percent}%**`
     );
 }
-
 
     // ======================================
     // 💔 كره
