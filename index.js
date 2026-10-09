@@ -3225,31 +3225,23 @@ if (message.content.toLowerCase().startsWith('بيع ')) {
 
 const TARGET_USER_ID = '1476270096296050730';
 
-// الأشخاص المستثنين من التايم
 const BYPASS_USERS = [
     '1552335485924278364',
     '1489281825942667355'
 ];
 
-// تخزين آخر منشن لكل شخص
 if (!global.mentionTracker) {
     global.mentionTracker = new Map();
 }
 
-// هل الرسالة فيها منشن للحساب المحدد؟
 const mentionedTarget = message.mentions.users.has(TARGET_USER_ID);
 
-if (
-    mentionedTarget &&
-    !BYPASS_USERS.includes(message.author.id)
-) {
+if (mentionedTarget && !BYPASS_USERS.includes(message.author.id)) {
     const now = Date.now();
     const lastMention = global.mentionTracker.get(message.author.id);
 
-    // لو منشن للمرة الثانية خلال 30 ثانية
+    // المنشن الثاني خلال 30 ثانية
     if (lastMention && now - lastMention < 30 * 1000) {
-
-        // تايم لمدة دقيقة واحدة
         try {
             await message.member.timeout(
                 60 * 1000,
@@ -3259,20 +3251,15 @@ if (
             await message.reply(
                 '⏱️ تم إعطاؤك تايم لمدة دقيقة بسبب تكرار المنشن خلال 30 ثانية.'
             );
-
         } catch (error) {
             console.error('خطأ في إعطاء التايم:', error);
         }
 
-        // حذف تسجيل المنشن بعد العقوبة
         global.mentionTracker.delete(message.author.id);
-
     } else {
-        // تسجيل المنشن الأول
         global.mentionTracker.set(message.author.id, now);
     }
 }
-}    
 // ===============================
 // 🔒 أمر سجن
 // ===============================
