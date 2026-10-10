@@ -3341,7 +3341,17 @@ client.on('messageCreate', async (message) => {
     if (message.mentions.users.has(LOVE_TARGET_ID)) {
         return message.reply(`<@${LOVE_OWNER_ID}>`);
     }
-});
+    client.on('messageCreate', async (message) => {
+    if (message.author.bot) return; // تجاهل البوتات
+
+    // ⛔ الشرط المطلوب: منع البوت من الرد أو الإرسال في روم البنك
+    if (message.channel.id === '1558467345125613618') return;
+
+    // ... باقي الكود الخاص بأمر رصيد وبقية الأوامر تحته عادي
+)
+    });
+   
+
 
     
 client.login(process.env.TOKEN);
