@@ -3217,47 +3217,7 @@ if (message.content.toLowerCase().startsWith('بيع ')) {
         `🎉 **تم اختيار ${amount} عضو من المشاركين:**\n\n${mentions}`
     );
 }
-// ======================================
-// 🚫 حماية منشن الحساب
-// ======================================
 
-const TARGET_USER_ID = '1476270096296050730';
-
-const BYPASS_USERS = [
-    '1552335485924278364',
-    '1489281825942667355'
-];
-
-if (!global.mentionTracker) {
-    global.mentionTracker = new Map();
-}
-
-const mentionedTarget = message.mentions.users.has(TARGET_USER_ID);
-
-if (mentionedTarget && !BYPASS_USERS.includes(message.author.id)) {
-    const now = Date.now();
-    const lastMention = global.mentionTracker.get(message.author.id);
-
-    // المنشن الثاني خلال 30 ثانية
-    if (lastMention && now - lastMention < 30 * 1000) {
-        try {
-            await message.member.timeout(
-                60 * 1000,
-                'تكرار منشن الحساب خلال 30 ثانية'
-            );
-
-            await message.reply(
-                '⏱️ تم إعطاؤك تايم لمدة دقيقة بسبب تكرار المنشن خلال 30 ثانية.'
-            );
-        } catch (error) {
-            console.error('خطأ في إعطاء التايم:', error);
-        }
-
-        global.mentionTracker.delete(message.author.id);
-    } else {
-        global.mentionTracker.set(message.author.id, now);
-    }
-}
 // ===============================
 // 🔒 أمر سجن
 // ===============================
